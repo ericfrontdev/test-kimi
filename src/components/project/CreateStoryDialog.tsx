@@ -84,7 +84,7 @@ export function CreateStoryDialog({
         {variant === "button" ? (
           <Button className="gap-2">
             <Plus size={16} />
-            Create Story
+            Créer une Story
           </Button>
         ) : (
           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -94,20 +94,20 @@ export function CreateStoryDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Story</DialogTitle>
+          <DialogTitle>Créer une Story</DialogTitle>
           <DialogDescription>
-            Create a new story for this project.
+            Créez une nouvelle story pour ce projet.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title">Titre *</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Story title"
+                placeholder="Titre de la story"
                 required
               />
             </div>
@@ -117,21 +117,21 @@ export function CreateStoryDialog({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description..."
+                placeholder="Brève description..."
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">Statut</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="BACKLOG">Backlog</SelectItem>
-                  <SelectItem value="TODO">To Do</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="IN_REVIEW">In Review</SelectItem>
-                  <SelectItem value="DONE">Done</SelectItem>
+                  <SelectItem value="TODO">À faire</SelectItem>
+                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                  <SelectItem value="IN_REVIEW">En révision</SelectItem>
+                  <SelectItem value="DONE">Terminé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -139,7 +139,7 @@ export function CreateStoryDialog({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Story"}
+              {isLoading ? "Création..." : "Créer"}
             </Button>
           </DialogFooter>
         </form>

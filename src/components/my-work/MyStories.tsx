@@ -17,7 +17,7 @@ export function MyStories() {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold">My Stories</CardTitle>
+          <CardTitle className="text-base font-semibold">Mes Stories</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="py-8 text-center text-sm text-muted-foreground">
@@ -32,14 +32,14 @@ export function MyStories() {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold">My Stories</CardTitle>
+          <CardTitle className="text-base font-semibold">Mes Stories</CardTitle>
           <select className="rounded-md border px-2 py-1 text-sm">
             <option>To-Do and In Progress</option>
           </select>
         </CardHeader>
         <CardContent>
           <div className="py-8 text-center text-sm text-muted-foreground">
-            No active stories. Create one in a project!
+            Aucune story active. Créez-en une dans un projet !
           </div>
         </CardContent>
       </Card>
@@ -61,7 +61,7 @@ export function MyStories() {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="rounded-md bg-muted/50 px-3 py-2 text-sm font-medium">
-          In Progress
+          En cours
           <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
             {inProgressCount}
           </span>

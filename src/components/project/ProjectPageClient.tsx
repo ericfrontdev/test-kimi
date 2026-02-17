@@ -1,7 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateStoryDialog } from "./CreateStoryDialog";
 import { DescriptionTab } from "./DescriptionTab";
@@ -52,7 +50,7 @@ export function ProjectPageClient({ project, stories }: ProjectPageClientProps) 
         <TabsList>
           <TabsTrigger value="description">Description</TabsTrigger>
           <TabsTrigger value="backlog">Backlog</TabsTrigger>
-          <TabsTrigger value="board">Board</TabsTrigger>
+          <TabsTrigger value="board">Tableau</TabsTrigger>
         </TabsList>
 
         <TabsContent value="description" className="mt-6">

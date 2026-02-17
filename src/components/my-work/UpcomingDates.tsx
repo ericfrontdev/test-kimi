@@ -17,9 +17,9 @@ export function UpcomingDates() {
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8 text-center">
         <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
-        <p className="text-sm font-medium">All Clear</p>
+        <p className="text-sm font-medium">Tout est OK</p>
         <p className="text-xs text-muted-foreground">
-          Nothing is due in the next 30 days.
+          Rien n'est prévu dans les 30 prochains jours.
         </p>
       </CardContent>
     </Card>

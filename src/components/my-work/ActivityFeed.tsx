@@ -10,9 +10,9 @@ function formatTime(isoString: string): string {
   const diff = now.getTime() - date.getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
   
-  if (hours < 1) return "Just now";
-  if (hours < 24) return `${hours}h ago`;
-  return date.toLocaleDateString();
+  if (hours < 1) return "À l'instant";
+  if (hours < 24) return `Il y a ${hours}h`;
+  return date.toLocaleDateString('fr-CA');
 }
 
 export function ActivityFeed() {
@@ -27,7 +27,7 @@ export function ActivityFeed() {
       <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-semibold">
-            My Activity Feed
+            Mon Activité
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -63,11 +63,11 @@ export function ActivityFeed() {
         </div>
 
         <div className="space-y-4">
-          <div className="text-sm font-medium text-muted-foreground">Today</div>
+          <div className="text-sm font-medium text-muted-foreground">Aujourd'hui</div>
 
           {activities.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              No recent activity
+              Aucune activité récente
             </p>
           ) : (
             activities.map((activity) => (

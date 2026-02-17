@@ -17,9 +17,9 @@ export function MyChecklists() {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
           <CheckSquare className="h-6 w-6 text-blue-600" />
         </div>
-        <p className="text-sm font-medium">You have no active checklist items</p>
+        <p className="text-sm font-medium">Vous n'avez aucune checklist active</p>
         <p className="text-xs text-muted-foreground">
-          Add checklist items to any story you own.
+          Ajoutez des éléments de checklist à n'importe quelle story.
         </p>
       </CardContent>
     </Card>

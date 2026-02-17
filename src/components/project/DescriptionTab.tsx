@@ -39,13 +39,13 @@ export function DescriptionTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Folder size={18} />
-            Project Information
+            Informations du projet
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium text-muted-foreground">
-              Name
+              Nom
             </label>
             <p className="text-lg font-semibold">{project.name}</p>
           </div>
@@ -78,7 +78,7 @@ export function DescriptionTab({
           {inProgressStories.length > 0 && (
             <div>
               <h4 className="mb-2 text-sm font-medium text-muted-foreground">
-                In Progress
+                En cours
               </h4>
               <div className="space-y-2">
                 {inProgressStories.map((story) => (
@@ -97,7 +97,7 @@ export function DescriptionTab({
           {todoStories.length > 0 && (
             <div>
               <h4 className="mb-2 text-sm font-medium text-muted-foreground">
-                To Do
+                À faire
               </h4>
               <div className="space-y-2">
                 {todoStories.map((story) => (
@@ -133,7 +133,7 @@ export function DescriptionTab({
 
           {stories.length === 0 && (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              No stories yet. Click the + button to create one.
+              Aucune story. Cliquez sur le bouton + pour en créer une.
             </p>
           )}
         </CardContent>

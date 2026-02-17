@@ -16,10 +16,10 @@ interface BoardTabProps {
 }
 
 const columns = [
-  { id: "TODO", title: "To Do" },
-  { id: "IN_PROGRESS", title: "In Progress" },
-  { id: "IN_REVIEW", title: "In Review" },
-  { id: "DONE", title: "Done" },
+  { id: "TODO", title: "À faire" },
+  { id: "IN_PROGRESS", title: "En cours" },
+  { id: "IN_REVIEW", title: "En révision" },
+  { id: "DONE", title: "Terminé" },
 ];
 
 export function BoardTab({ stories }: BoardTabProps) {

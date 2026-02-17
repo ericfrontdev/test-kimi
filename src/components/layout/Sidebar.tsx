@@ -52,7 +52,7 @@ export function Sidebar() {
           <NavItem
             href="/"
             icon={<LayoutDashboard size={18} />}
-            label="My Work"
+            label="Mon Travail"
             active={pathname === "/"}
           />
         </nav>

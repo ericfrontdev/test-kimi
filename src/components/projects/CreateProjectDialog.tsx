@@ -70,20 +70,20 @@ export function CreateProjectDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
+          <DialogTitle>Créer un Projet</DialogTitle>
           <DialogDescription>
-            Create a new project to organize your stories.
+            Créez un nouveau projet pour organiser vos stories.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Project Name *</Label>
+              <Label htmlFor="name">Nom du projet *</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="My Awesome Project"
+                placeholder="Mon super projet"
                 required
               />
             </div>
@@ -93,7 +93,7 @@ export function CreateProjectDialog() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description..."
+                placeholder="Brève description..."
               />
             </div>
             {formError && (
@@ -102,7 +102,7 @@ export function CreateProjectDialog() {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Project"}
+              {isLoading ? "Création..." : "Créer"}
             </Button>
           </DialogFooter>
         </form>

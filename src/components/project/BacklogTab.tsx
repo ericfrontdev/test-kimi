@@ -22,7 +22,7 @@ export function BacklogTab({ stories }: BacklogTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Backlog Section */}
+      {/* Section Backlog */}
       <div>
         <h3 className="mb-3 text-sm font-semibold">
           Backlog
@@ -47,17 +47,17 @@ export function BacklogTab({ stories }: BacklogTabProps) {
           ))}
           {backlogStories.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No stories in backlog
+              Aucune story dans le backlog
             </p>
           )}
         </div>
       </div>
 
-      {/* In Board Section */}
+      {/* Section Dans le Tableau */}
       {boardStories.length > 0 && (
         <div>
           <h3 className="mb-3 text-sm font-semibold">
-            In Board
+            Dans le Tableau
             <Badge variant="secondary" className="ml-2">
               {boardStories.length}
             </Badge>
@@ -75,7 +75,7 @@ export function BacklogTab({ stories }: BacklogTabProps) {
                       </span>
                     </div>
                   </div>
-                  <Badge>{story.status.replace("_", " ")}</Badge>
+                  <Badge>{story.status === "TODO" ? "À faire" : story.status === "IN_PROGRESS" ? "En cours" : story.status === "IN_REVIEW" ? "En révision" : story.status === "DONE" ? "Terminé" : story.status}</Badge>
                 </CardContent>
               </Card>
             ))}

@@ -1,9 +1,9 @@
 "use client";
 
-import { mockUser, getGreeting } from "@/lib/my-work/mock-data";
+import { mockUser, getGreetingFr } from "@/lib/my-work/mock-data";
 
 export function Greeting() {
-  const greeting = getGreeting();
+  const greeting = getGreetingFr();
 
   return (
     <div className="flex items-center gap-2">

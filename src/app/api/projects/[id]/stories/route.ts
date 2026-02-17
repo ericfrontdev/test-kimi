@@ -24,7 +24,7 @@ export async function POST(
 
     if (!title || typeof title !== "string" || title.trim().length === 0) {
       return NextResponse.json(
-        { error: "Story title is required" },
+        { error: "Le titre de la story est requis" },
         { status: 400 }
       );
     }
@@ -36,7 +36,7 @@ export async function POST(
 
     if (!project) {
       return NextResponse.json(
-        { error: "Project not found" },
+        { error: "Projet non trouvé" },
         { status: 404 }
       );
     }
@@ -70,7 +70,7 @@ export async function POST(
   } catch (error) {
     console.error("Error creating story:", error);
     return NextResponse.json(
-      { error: "Failed to create story" },
+      { error: "Échec de la création de la story" },
       { status: 500 }
     );
   }

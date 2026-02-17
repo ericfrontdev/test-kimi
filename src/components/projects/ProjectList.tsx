@@ -25,7 +25,7 @@ export function ProjectList() {
   if (isLoading) {
     return (
       <div className="px-3 py-2 text-sm text-muted-foreground">
-        Loading...
+        Chargement...
       </div>
     );
   }
@@ -40,7 +40,7 @@ export function ProjectList() {
           <CreateProjectDialog />
         </div>
         <p className="px-3 text-xs text-muted-foreground">
-          No projects yet. Create one!
+          Aucun projet. Créez-en un !
         </p>
       </div>
     );
