@@ -18,6 +18,7 @@ Tu DOIS suivre ces règles À LA LETTRE pour chaque fichier créé ou modifié. 
 | **Layouts** (layout.tsx) | 80 lignes | Moyenne | Créer des composants de layout séparés |
 | **API Routes** (route.ts) | 150 lignes | Moyenne | Séparer en fonctions utilitaires ou services |
 | **Hooks personnalisés** (useX.ts) | 100 lignes | Faible | Diviser en hooks plus petits et spécialisés |
+| **Stores Zustand** (*.ts) | 150 lignes | Moyenne | Découper en stores spécialisés |
 | **Utilitaires** (lib/utils.ts) | Pas de limite stricte | Élevée | - |
 | **Types/Interfaces** (types.ts) | Pas de limite | Élevée | - |
 | **Styles** (globals.css, etc.) | Pas de limite | Élevée | - |
@@ -33,6 +34,37 @@ Tu DOIS suivre ces règles À LA LETTRE pour chaque fichier créé ou modifié. 
 4. Expliquer le découpage réalisé après coup
 
 **N'attends pas la permission** - découpe automatiquement et présente le résultat.
+
+---
+
+## 🏪 STORES ZUSTAND
+
+**Limite :** Maximum **150 lignes** par store.
+
+**Si un store dépasse 150 lignes, le découper en plusieurs stores spécialisés :**
+
+| Store | Responsabilité |
+|-------|----------------|
+| `xxxStore.ts` | Données et CRUD (état, actions, fetch) |
+| `xxxUIStore.ts` | État UI uniquement (modales ouvertes, loading, erreurs) |
+| `xxxSelectionStore.ts` | Sélection/active item |
+
+**Exemple de découpage :**
+```typescript
+// projectsStore.ts (111 lignes) - Données
+export const useProjectsStore = create<ProjectsState>((set, get) => ({
+  projects: [],
+  fetchProjects: async () => { ... },
+  createProject: async (data) => { ... },
+}));
+
+// projectsUIStore.ts (50 lignes) - UI state
+export const useProjectsUIStore = create<ProjectsUIState>((set) => ({
+  isCreateDialogOpen: false,
+  editingProjectId: null,
+  setCreateDialogOpen: (open) => set({ isCreateDialogOpen: open }),
+}));
+```
 
 ---
 
