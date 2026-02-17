@@ -1,4 +1,4 @@
-import { Plus, Search, Command, Help, Bell } from "lucide-react";
+import { Plus, Search, Command, HelpCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -31,7 +31,7 @@ export function Header() {
           Get Started
         </Button>
         <Button variant="ghost" size="icon" className="text-muted-foreground">
-          <Help size={18} />
+          <HelpCircle size={18} />
         </Button>
         <Button variant="ghost" size="icon" className="relative text-muted-foreground">
           <Bell size={18} />
