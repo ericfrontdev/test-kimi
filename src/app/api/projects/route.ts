@@ -28,17 +28,24 @@ export async function GET() {
 
 // POST /api/projects - Create new project
 export async function POST(request: NextRequest) {
+  console.log("POST /api/projects called");
+  
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  console.log("User:", user?.id || "null");
+
   if (!user) {
+    console.log("Unauthorized - no user");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const body = await request.json();
+    console.log("Request body:", body);
+    
     const { name, description } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -48,6 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("Creating project in database...");
     const project = await prisma.project.create({
       data: {
         name: name.trim(),
@@ -56,11 +64,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log("Project created:", project.id);
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
     console.error("Error creating project:", error);
     return NextResponse.json(
-      { error: "Failed to create project" },
+      { error: String(error) },
       { status: 500 }
     );
   }
