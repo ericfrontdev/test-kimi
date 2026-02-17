@@ -1,9 +1,9 @@
-import { LayoutDashboard, Folder, Plus, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { ProjectList } from "@/components/projects/ProjectList";
 
 interface NavItemProps {
   href: string;
@@ -56,25 +56,8 @@ export function Sidebar() {
         </nav>
 
         {/* Projects Section */}
-        <div className="mt-6 px-3">
-          <div className="mb-2 flex items-center justify-between px-3">
-            <span className="text-xs font-medium text-muted-foreground">
-              Projects
-            </span>
-            <Button variant="ghost" size="icon" className="h-5 w-5">
-              <Plus size={14} />
-            </Button>
-          </div>
-          
-          {/* Project list will go here */}
-          <div className="space-y-1">
-            <NavItem
-              href="/project/demo"
-              icon={<Folder size={18} />}
-              label="Demo Project"
-              active={pathname.startsWith("/project/demo")}
-            />
-          </div>
+        <div className="mt-6">
+          <ProjectList />
         </div>
       </div>
 
