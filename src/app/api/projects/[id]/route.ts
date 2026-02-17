@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
+// Ensure user exists in database
+async function ensureUserExists(
+  userId: string,
+  email: string,
+  name?: string
+) {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!existingUser) {
+    return await prisma.user.create({
+      data: {
+        id: userId,
+        email,
+        name: name || email.split("@")[0],
+      },
+    });
+  }
+
+  return existingUser;
+}
+
 // PATCH /api/projects/[id] - Update project
 export async function PATCH(
   request: NextRequest,
@@ -15,6 +38,9 @@ export async function PATCH(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Ensure user exists in database
+  await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
   const { id } = await params;
 
@@ -66,6 +92,9 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Ensure user exists in database
+  await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
   const { id } = await params;
 

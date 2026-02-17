@@ -46,30 +46,22 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
 
   createProject: async (data) => {
     try {
-      console.log("Creating project with data:", data);
-      
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       
-      console.log("Response status:", response.status);
-      
       if (!response.ok) {
-        const text = await response.text();
-        console.error("Error response:", text);
-        throw new Error(text || `HTTP ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to create project");
       }
       
       const project = await response.json();
-      console.log("Project created:", project);
-      
       set({ projects: [project, ...get().projects], error: null });
       return project;
     } catch (error) {
       const message = (error as Error).message;
-      console.error("Create project error:", message);
       set({ error: message });
       return null;
     }

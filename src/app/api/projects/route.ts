@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
+// Ensure user exists in database
+async function ensureUserExists(
+  userId: string,
+  email: string,
+  name?: string
+) {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!existingUser) {
+    console.log("Creating user in database:", userId);
+    return await prisma.user.create({
+      data: {
+        id: userId,
+        email,
+        name: name || email.split("@")[0],
+      },
+    });
+  }
+
+  return existingUser;
+}
+
 // GET /api/projects - List user's projects
 export async function GET() {
   const supabase = await createClient();
@@ -12,6 +36,9 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Ensure user exists in DB
+  await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
   const projects = await prisma.project.findMany({
     where: { ownerId: user.id },
@@ -28,24 +55,17 @@ export async function GET() {
 
 // POST /api/projects - Create new project
 export async function POST(request: NextRequest) {
-  console.log("POST /api/projects called");
-  
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log("User:", user?.id || "null");
-
   if (!user) {
-    console.log("Unauthorized - no user");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const body = await request.json();
-    console.log("Request body:", body);
-    
     const { name, description } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -55,7 +75,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Creating project in database...");
+    // Ensure user exists in database before creating project
+    await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
+
     const project = await prisma.project.create({
       data: {
         name: name.trim(),
@@ -64,7 +86,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("Project created:", project.id);
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
     console.error("Error creating project:", error);
