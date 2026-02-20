@@ -24,9 +24,6 @@ export function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="hidden md:flex">
-          Get Started
-        </Button>
         <Button variant="ghost" size="icon" className="text-muted-foreground">
           <HelpCircle size={18} />
         </Button>
