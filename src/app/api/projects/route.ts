@@ -41,9 +41,32 @@ export async function GET() {
   await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
   const projects = await prisma.project.findMany({
-    where: { ownerId: user.id },
+    where: {
+      OR: [
+        { ownerId: user.id },
+        {
+          members: {
+            some: {
+              userId: user.id,
+            },
+          },
+        },
+      ],
+    },
     orderBy: { createdAt: "desc" },
     include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      },
       _count: {
         select: { stories: true },
       },
@@ -66,7 +89,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, description } = body;
+    const { name, description, color } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json(
@@ -82,7 +105,28 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         description: description?.trim() || null,
+        color: color || null,
         ownerId: user.id,
+        members: {
+          create: {
+            userId: user.id,
+            role: "ADMIN",
+          },
+        },
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
       },
     });
 
