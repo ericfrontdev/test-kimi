@@ -83,7 +83,7 @@ export async function POST(
 
   const { id: projectId, storyId, taskId } = await params;
   const body = await request.json();
-  const { content } = body;
+  const { content, mentions = [] } = body;
 
   if (!content?.trim()) {
     return NextResponse.json(
@@ -115,6 +115,15 @@ export async function POST(
         storyId: storyId,
         story: { projectId },
       },
+      include: {
+        story: {
+          select: {
+            storyNumber: true,
+            type: true,
+            title: true,
+          },
+        },
+      },
     });
 
     if (!task) {
@@ -137,6 +146,29 @@ export async function POST(
         },
       },
     });
+
+    // Create notifications for mentioned users
+    if (mentions.length > 0) {
+      const authorName = comment.author.name || comment.author.email;
+      const subtaskId = `${task.story.type}-${task.story.storyNumber}-${task.taskNumber}`;
+      
+      await prisma.notification.createMany({
+        data: mentions
+          .filter((mentionedUserId: string) => mentionedUserId !== user.id) // Don't notify self
+          .map((mentionedUserId: string) => ({
+            type: "COMMENT_MENTION" as const,
+            title: "Mention dans un commentaire",
+            message: `${authorName} vous a mentionné dans un commentaire sur la sous-tâche ${subtaskId}`,
+            userId: mentionedUserId,
+            data: JSON.stringify({
+              projectId,
+              storyId,
+              taskId,
+              commentId: comment.id,
+            }),
+          })),
+      });
+    }
 
     return NextResponse.json(comment, { status: 201 });
   } catch (error) {

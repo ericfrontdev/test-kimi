@@ -21,12 +21,21 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   const project = await prisma.project.findFirst({
-    where: { id, ownerId: user.id },
+    where: {
+      id,
+      OR: [
+        { ownerId: user.id },
+        { members: { some: { userId: user.id } } },
+      ],
+    },
     include: {
       stories: {
         include: {
           tasks: {
             select: { id: true, status: true },
+          },
+          assignee: {
+            select: { name: true, email: true },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -40,10 +49,15 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const formattedStories = project.stories.map((story) => ({
     id: story.id,
+    storyNumber: story.storyNumber,
     title: story.title,
     status: story.status,
+    type: story.type,
+    priority: story.priority,
     subtasks: story.tasks.length,
     completedSubtasks: story.tasks.filter((t) => t.status === "DONE").length,
+    assigneeId: story.assigneeId,
+    assignee: story.assignee,
   }));
 
   return (

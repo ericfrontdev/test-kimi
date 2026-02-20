@@ -5,6 +5,7 @@ import { MessageSquare, CheckSquare, Calendar, User, Clock, Loader2, Edit3, Chec
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea, extractMentions } from "@/components/ui/mention-textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -102,10 +103,16 @@ export function SubtaskDetailDialog({
     if (!newComment.trim() || !task) return;
     setIsSubmittingComment(true);
     try {
+      // Extract mentions from comment
+      const mentions = extractMentions(newComment.trim(), projectUsers);
+      
       const response = await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${task.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment.trim() }),
+        body: JSON.stringify({ 
+          content: newComment.trim(),
+          mentions,
+        }),
       });
       if (response.ok) {
         const comment = await response.json();
@@ -278,10 +285,11 @@ export function SubtaskDetailDialog({
                   EO
                 </div>
                 <div className="flex-1">
-                  <Textarea
-                    placeholder="Ajouter un commentaire..."
+                  <MentionTextarea
+                    placeholder="Ajouter un commentaire... Utilisez @ pour mentionner"
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    onChange={setNewComment}
+                    users={projectUsers}
                     className="min-h-[80px] resize-none"
                   />
                   <div className="flex justify-end mt-2">
