@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, CheckSquare, Link2, Paperclip, ListChecks, GitBranch, Clock, User, Flag, Calendar, Tag, FolderOpen, MoreHorizontal } from "lucide-react";
+import { Plus, CheckSquare, Link2, Paperclip, ListChecks, GitBranch, Clock, User, Flag, Calendar, Tag, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -147,15 +147,10 @@ export function CreateStoryDialog({
       </DialogTrigger>
       <DialogContent className="!max-w-none w-[60vw] h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="text-lg font-semibold">
             Créer une Story
           </DialogTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
