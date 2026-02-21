@@ -7,9 +7,12 @@ import { CreateStoryDialog } from "./CreateStoryDialog";
 import { BacklogTab } from "./BacklogTab";
 import { BoardTab } from "./BoardTab";
 import { ArchivedTab } from "./ArchivedTab";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Story } from "./kanban/types";
 import { useProjectStore } from "@/stores/project";
+
+const VALID_TABS = ["description", "backlog", "board", "archived"] as const;
+type Tab = (typeof VALID_TABS)[number];
 
 // Dynamically import DescriptionTab to avoid hydration issues with dnd-kit
 const DescriptionTab = dynamic(() => import("./DescriptionTab").then((mod) => mod.DescriptionTab), {
@@ -30,7 +33,17 @@ interface ProjectPageClientProps {
 
 export function ProjectPageClient({ project, stories: initialStories, hasMoreStories }: ProjectPageClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setProject = useProjectStore((state) => state.setProject);
+
+  const rawTab = searchParams.get("tab");
+  const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "description";
+
+  function handleTabChange(tab: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
 
   // Initialize / sync store with server-rendered data
   useEffect(() => {
@@ -54,7 +67,7 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="description" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList>
           <TabsTrigger value="description">Description</TabsTrigger>
           <TabsTrigger value="backlog">Backlog</TabsTrigger>
