@@ -1,6 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { validateBody, createStorySchema } from "@/lib/schemas";
+import { StoryStatus } from "@prisma/client";
+
+const TAKE_DEFAULT = 50;
+const TAKE_MAX = 100;
+
+// GET /api/projects/[id]/stories - List stories with pagination
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: projectId } = await params;
+  const { searchParams } = new URL(request.url);
+
+  const skip = Math.max(0, parseInt(searchParams.get("skip") ?? "0", 10) || 0);
+  const take = Math.min(TAKE_MAX, Math.max(1, parseInt(searchParams.get("take") ?? String(TAKE_DEFAULT), 10) || TAKE_DEFAULT));
+  const statusParam = searchParams.get("status");
+
+  try {
+    // Verify project exists and user has access
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } },
+        ],
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
+    }
+
+    const statusFilter = statusParam
+      ? { status: statusParam as StoryStatus }
+      : { status: { not: "ARCHIVED" as StoryStatus } };
+
+    const [rawStories, total] = await Promise.all([
+      prisma.story.findMany({
+        where: { projectId, ...statusFilter },
+        include: {
+          tasks: { select: { id: true, status: true } },
+          assignee: { select: { name: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.story.count({ where: { projectId, ...statusFilter } }),
+    ]);
+
+    const stories = rawStories.map((story) => ({
+      id: story.id,
+      storyNumber: story.storyNumber,
+      title: story.title,
+      status: story.status,
+      type: story.type,
+      priority: story.priority,
+      subtasks: story.tasks.length,
+      completedSubtasks: story.tasks.filter((t) => t.status === "DONE").length,
+      assigneeId: story.assigneeId,
+      assignee: story.assignee,
+    }));
+
+    return NextResponse.json({ stories, total, hasMore: skip + take < total });
+  } catch {
+    return NextResponse.json(
+      { error: "Échec de la récupération des stories" },
+      { status: 500 }
+    );
+  }
+}
 
 // POST /api/projects/[id]/stories - Create new story
 export async function POST(
@@ -18,20 +98,21 @@ export async function POST(
 
   const { id: projectId } = await params;
 
+  const { data, response } = await validateBody(request, createStorySchema);
+  if (response) return response;
+
   try {
-    const body = await request.json();
-    const { title, description, status = "BACKLOG" } = body;
+    const { title, description, status = "BACKLOG", type, priority } = data;
 
-    if (!title || typeof title !== "string" || title.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Le titre de la story est requis" },
-        { status: 400 }
-      );
-    }
-
-    // Verify project exists and belongs to user
+    // Verify project exists and user has access (owner or member)
     const project = await prisma.project.findFirst({
-      where: { id: projectId, ownerId: user.id },
+      where: {
+        id: projectId,
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } },
+        ],
+      },
     });
 
     if (!project) {
@@ -58,17 +139,18 @@ export async function POST(
 
     const story = await prisma.story.create({
       data: {
-        title: title.trim(),
-        description: description?.trim() || null,
+        title,
+        description: description ?? null,
         status,
+        ...(type !== undefined && { type }),
+        ...(priority !== undefined && { priority }),
         projectId,
         authorId: user.id,
       },
     });
 
     return NextResponse.json(story, { status: 201 });
-  } catch (error) {
-    console.error("Error creating story:", error);
+  } catch {
     return NextResponse.json(
       { error: "Échec de la création de la story" },
       { status: 500 }

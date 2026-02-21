@@ -4,9 +4,11 @@ import type { Story } from "@/components/project/kanban/types";
 interface ProjectState {
   projectId: string | null;
   stories: Story[];
-  setProject: (projectId: string, stories: Story[]) => void;
+  hasMoreStories: boolean;
+  setProject: (projectId: string, stories: Story[], hasMoreStories?: boolean) => void;
   addStory: (story: Story) => void;
   removeStory: (storyId: string) => void;
+  appendStories: (stories: Story[], hasMore: boolean) => void;
   updateStoryStatus: (storyId: string, newStatus: string) => Promise<void>;
   updateStoryPriority: (storyId: string, newPriority: number) => Promise<void>;
   updateStoryAssignee: (
@@ -23,14 +25,23 @@ interface ProjectState {
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projectId: null,
   stories: [],
+  hasMoreStories: false,
 
-  setProject: (projectId, stories) => set({ projectId, stories }),
+  setProject: (projectId, stories, hasMoreStories = false) =>
+    set({ projectId, stories, hasMoreStories }),
 
   addStory: (story) =>
     set((state) => ({ stories: [story, ...state.stories] })),
 
   removeStory: (storyId) =>
     set((state) => ({ stories: state.stories.filter((s) => s.id !== storyId) })),
+
+  appendStories: (newStories, hasMore) =>
+    set((state) => {
+      const existingIds = new Set(state.stories.map((s) => s.id));
+      const toAdd = newStories.filter((s) => !existingIds.has(s.id));
+      return { stories: [...state.stories, ...toAdd], hasMoreStories: hasMore };
+    }),
 
   updateStoryStatus: async (storyId, newStatus) => {
     const { projectId, stories } = get();

@@ -20,28 +20,37 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     return null;
   }
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id,
-      OR: [
-        { ownerId: user.id },
-        { members: { some: { userId: user.id } } },
-      ],
-    },
-    include: {
-      stories: {
-        include: {
-          tasks: {
-            select: { id: true, status: true },
-          },
-          assignee: {
-            select: { name: true, email: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
+  const INITIAL_TAKE = 100;
+
+  const [project, totalNonArchived] = await Promise.all([
+    prisma.project.findFirst({
+      where: {
+        id,
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } },
+        ],
       },
-    },
-  });
+      include: {
+        stories: {
+          where: { status: { not: "ARCHIVED" } },
+          include: {
+            tasks: {
+              select: { id: true, status: true },
+            },
+            assignee: {
+              select: { name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: INITIAL_TAKE,
+        },
+      },
+    }),
+    prisma.story.count({
+      where: { projectId: id, status: { not: "ARCHIVED" } },
+    }),
+  ]);
 
   if (!project) {
     notFound();
@@ -60,11 +69,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     assignee: story.assignee,
   }));
 
+  const hasMoreStories = totalNonArchived > INITIAL_TAKE;
+
   return (
     <MainLayout>
       <ProjectPageClient
         project={{ id: project.id, name: project.name, description: project.description }}
         stories={formattedStories}
+        hasMoreStories={hasMoreStories}
       />
     </MainLayout>
   );

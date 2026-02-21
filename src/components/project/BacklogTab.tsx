@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Layers, ArrowRight, ArrowLeft } from "lucide-react";
+import { MoreHorizontal, Layers, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { EditStoryDialog } from "./EditStoryDialog";
 import {
@@ -29,12 +29,31 @@ interface BacklogTabProps {
 
 export function BacklogTab({ projectId }: BacklogTabProps) {
   const stories = useProjectStore((state) => state.stories);
+  const hasMoreStories = useProjectStore((state) => state.hasMoreStories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
   const updateStoryFields = useProjectStore((state) => state.updateStoryFields);
+  const appendStories = useProjectStore((state) => state.appendStories);
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  async function handleLoadMore() {
+    const nonArchivedCount = stories.filter((s) => s.status !== "ARCHIVED").length;
+    setIsLoadingMore(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/stories?skip=${nonArchivedCount}&take=50`
+      );
+      if (res.ok) {
+        const { stories: newStories, hasMore } = await res.json();
+        appendStories(newStories, hasMore);
+      }
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
 
   const backlogStories = stories.filter((s) => s.status === "BACKLOG");
   const boardStories = stories.filter((s) => s.status !== "BACKLOG" && s.status !== "ARCHIVED");
@@ -217,6 +236,20 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
           </Table>
         </div>
       </div>
+
+      {/* Charger plus */}
+      {hasMoreStories && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            onClick={handleLoadMore}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Charger plus
+          </Button>
+        </div>
+      )}
 
       {/* Story Detail Dialog */}
       <StoryDetailDialog
