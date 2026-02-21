@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import { useKanbanStore } from "@/stores/kanban";
+import { useProjectStore } from "@/stores/project";
 import {
   DndContext,
   DragOverlay,
@@ -19,83 +22,73 @@ import {
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { KanbanColumn } from "./kanban/KanbanColumn";
 import { StoryCardOverlay } from "./kanban/StoryCardOverlay";
-import type { Story, Task, ProjectUser } from "./kanban/types";
+import type { Story, Task, ProjectUser, TaskStatus } from "./kanban/types";
 import { columns } from "./kanban/types";
 
 interface BoardTabProps {
-  stories: Story[];
   projectId: string;
-  onStoryStatusChange?: (storyId: string, newStatus: string) => void;
-  onStoryPriorityChange?: (storyId: string, newPriority: number) => void;
-  onStoryAssigneeChange?: (storyId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
 }
 
-export function BoardTab({ 
-  stories, 
-  projectId, 
-  onStoryStatusChange,
-  onStoryPriorityChange,
-  onStoryAssigneeChange,
-}: BoardTabProps) {
+export function BoardTab({ projectId }: BoardTabProps) {
   const setCurrentProjectId = useKanbanStore((state) => state.setCurrentProjectId);
-  
+
   // Set projectId in store for child components
   useEffect(() => {
     setCurrentProjectId(projectId);
     return () => setCurrentProjectId(null);
   }, [projectId, setCurrentProjectId]);
-  
+
+  // Store reads
+  const storeStories = useProjectStore((state) => state.stories);
+  const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
+  const updateStoryPriority = useProjectStore((state) => state.updateStoryPriority);
+  const updateStoryAssignee = useProjectStore((state) => state.updateStoryAssignee);
+
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
   const [storyTasks, setStoryTasks] = useState<Record<string, Task[]>>({});
   const [loadingTasks, setLoadingTasks] = useState<Set<string>>(new Set());
-  const [projectUsers, setProjectUsers] = useState<ProjectUser[]>([]);
 
-  // Fetch project users on mount
+  // dragStories: null when not dragging (falls back to storeStories),
+  // snapshot of store at drag-start during active drag
+  const [dragStories, setDragStories] = useState<Story[] | null>(null);
+  const localStories = dragStories ?? storeStories;
+
+  const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
+    `/api/projects/${projectId}/members`,
+    fetcher
+  );
+
+  // Preload all subtasks in background when story IDs change
+  const preloadedRef = useRef<Set<string>>(new Set());
+  const storyIdsKey = storeStories.map((s) => s.id).join(",");
+
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const response = await fetch(`/api/projects/${projectId}/members`);
-        if (response.ok) {
-          const data = await response.json();
-          setProjectUsers(data);
-        }
-      } catch (error) {
-        console.error("Error fetching project users:", error);
-      }
-    }
-    fetchUsers();
-  }, [projectId]);
+    const storiesToLoad = storeStories.filter(
+      (s) => s.subtasks > 0 && !preloadedRef.current.has(s.id)
+    );
+    if (storiesToLoad.length === 0) return;
 
-  // Preload all subtasks in background when component mounts
-  useEffect(() => {
-    async function preloadSubtasks() {
-      // Only preload stories that have subtasks and haven't been loaded yet
-      const storiesToLoad = stories.filter(
-        (s) => s.subtasks > 0 && !storyTasks[s.id]
-      );
-      
-      if (storiesToLoad.length === 0) return;
+    storiesToLoad.forEach((s) => preloadedRef.current.add(s.id));
 
-      // Load all subtasks in parallel
-      await Promise.all(
-        storiesToLoad.map(async (story) => {
-          try {
-            const response = await fetch(`/api/projects/${projectId}/stories/${story.id}`);
-            if (response.ok) {
-              const data = await response.json();
-              setStoryTasks((prev) => ({ ...prev, [story.id]: data.tasks || [] }));
-            }
-          } catch (error) {
-            console.error(`Error preloading tasks for story ${story.id}:`, error);
+    Promise.all(
+      storiesToLoad.map(async (story) => {
+        try {
+          const response = await fetch(`/api/projects/${projectId}/stories/${story.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setStoryTasks((prev) => ({ ...prev, [story.id]: data.tasks || [] }));
+          } else {
+            preloadedRef.current.delete(story.id);
           }
-        })
-      );
-    }
-
-    preloadSubtasks();
-  }, [projectId, stories]);
+        } catch {
+          preloadedRef.current.delete(story.id);
+        }
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, storyIdsKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -105,13 +98,13 @@ export function BoardTab({
   );
 
   const activeStory = useMemo(
-    () => stories.find((s) => s.id === activeId),
-    [activeId, stories]
+    () => localStories.find((s) => s.id === activeId),
+    [activeId, localStories]
   );
 
   async function toggleSubtasks(storyId: string) {
     const isExpanded = expandedStories.has(storyId);
-    
+
     if (isExpanded) {
       setExpandedStories((prev) => {
         const next = new Set(prev);
@@ -127,8 +120,8 @@ export function BoardTab({
             const data = await response.json();
             setStoryTasks((prev) => ({ ...prev, [storyId]: data.tasks || [] }));
           }
-        } catch (error) {
-          console.error("Error fetching tasks:", error);
+        } catch {
+          // silently fail
         } finally {
           setLoadingTasks((prev) => {
             const next = new Set(prev);
@@ -142,86 +135,47 @@ export function BoardTab({
   }
 
   async function handlePriorityChange(storyId: string, newPriority: number) {
-    // Optimistic update
-    onStoryPriorityChange?.(storyId, newPriority);
-    
-    try {
-      const response = await fetch(`/api/projects/${projectId}/stories/${storyId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priority: newPriority }),
-      });
-      if (!response.ok) {
-        console.error("Failed to update priority");
-      }
-    } catch (error) {
-      console.error("Error updating priority:", error);
-    }
+    await updateStoryPriority(storyId, newPriority);
   }
 
   async function handleAssigneeChange(storyId: string, assigneeId: string | null, assignSubtasks: boolean) {
-    // Find assignee info from project users for optimistic update
-    const user = assigneeId 
-      ? projectUsers.find((u) => u.id === assigneeId) 
-      : null;
-    
-    const assignee = user 
-      ? { name: user.name, email: user.email }
-      : null;
-    
-    // Optimistic update for story
-    onStoryAssigneeChange?.(storyId, assigneeId, assignee);
-    
-    // If assignSubtasks is true and we have subtasks loaded, update them too
+    const user = assigneeId ? projectUsers.find((u) => u.id === assigneeId) : null;
+    const assignee = user ? { name: user.name, email: user.email } : null;
+
+    // Update story in store (handles optimistic update + API call + rollback)
+    await updateStoryAssignee(storyId, assigneeId, assignee);
+
+    // If assignSubtasks is true and tasks are loaded, update subtask assignees too
     if (assignSubtasks && storyTasks[storyId]?.length > 0) {
-      const tasksToUpdate = storyTasks[storyId];
-      
-      // Optimistic update for all subtasks
+      const previousTasks = storyTasks[storyId];
+
       setStoryTasks((prev) => ({
         ...prev,
-        [storyId]: prev[storyId]?.map((task) =>
-          ({ ...task, assignee: assignee || null })
-        ) || [],
+        [storyId]: prev[storyId]?.map((task) => ({ ...task, assignee: assignee || null })) || [],
       }));
-      
-      // Update all subtasks on the server
+
       try {
-        await Promise.all(
-          tasksToUpdate.map(async (task) => {
-            await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${task.id}`, {
+        const results = await Promise.all(
+          previousTasks.map((task) =>
+            fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${task.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ assigneeId }),
-            });
-          })
+            })
+          )
         );
-      } catch (error) {
-        console.error("Error updating subtasks assignee:", error);
-      }
-    }
-    
-    try {
-      const response = await fetch(`/api/projects/${projectId}/stories/${storyId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignee: assigneeId }),
-      });
-      if (response.ok) {
-        // Update with server response to ensure data consistency
-        const updatedStory = await response.json();
-        if (updatedStory.assignee) {
-          onStoryAssigneeChange?.(storyId, assigneeId, updatedStory.assignee);
+        if (results.some((r) => !r.ok)) {
+          setStoryTasks((prev) => ({ ...prev, [storyId]: previousTasks }));
         }
-      } else {
-        console.error("Failed to update assignee");
+      } catch {
+        setStoryTasks((prev) => ({ ...prev, [storyId]: previousTasks }));
       }
-    } catch (error) {
-      console.error("Error updating assignee:", error);
     }
   }
 
   async function handleTaskAssigneeChange(storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) {
-    // Update local state
+    const previousTasks = storyTasks[storyId];
+
     setStoryTasks((prev) => ({
       ...prev,
       [storyId]: prev[storyId]?.map((task) =>
@@ -236,15 +190,16 @@ export function BoardTab({
         body: JSON.stringify({ assigneeId }),
       });
       if (!response.ok) {
-        console.error("Failed to update task assignee");
+        setStoryTasks((prev) => ({ ...prev, [storyId]: previousTasks }));
       }
-    } catch (error) {
-      console.error("Error updating task assignee:", error);
+    } catch {
+      setStoryTasks((prev) => ({ ...prev, [storyId]: previousTasks }));
     }
   }
 
-  async function handleTaskStatusChange(storyId: string, taskId: string, status: "TODO" | "DONE") {
-    // Update local state
+  async function handleTaskStatusChange(storyId: string, taskId: string, status: TaskStatus) {
+    const previousTasks = storyTasks[storyId];
+
     setStoryTasks((prev) => ({
       ...prev,
       [storyId]: prev[storyId]?.map((task) =>
@@ -259,54 +214,55 @@ export function BoardTab({
         body: JSON.stringify({ status }),
       });
       if (!response.ok) {
-        console.error("Failed to update task status");
+        setStoryTasks((prev) => ({ ...prev, [storyId]: previousTasks }));
       }
-    } catch (error) {
-      console.error("Error updating task status:", error);
+    } catch {
+      setStoryTasks((prev) => ({ ...prev, [storyId]: previousTasks }));
     }
   }
 
   function handleDragStart(event: DragStartEvent) {
+    // Snapshot the current store state so drag updates are isolated
+    setDragStories(storeStories);
     setActiveId(event.active.id as string);
   }
 
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || !dragStories) return;
 
-    const activeStory = stories.find((s) => s.id === active.id);
+    const activeStory = dragStories.find((s) => s.id === active.id);
     if (!activeStory) return;
 
     const overId = over.id as string;
     const column = columns.find((c) => c.id === overId);
-    
+
     if (column && activeStory.status !== column.id) {
-      onStoryStatusChange?.(active.id as string, column.id);
+      setDragStories((prev) =>
+        prev!.map((s) => (s.id === active.id ? { ...s, status: column.id } : s))
+      );
       return;
     }
 
-    const overStory = stories.find((s) => s.id === overId);
+    const overStory = dragStories.find((s) => s.id === overId);
     if (overStory && activeStory.status !== overStory.status) {
-      onStoryStatusChange?.(active.id as string, overStory.status);
+      setDragStories((prev) =>
+        prev!.map((s) => (s.id === active.id ? { ...s, status: overStory.status } : s))
+      );
     }
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active } = event;
     setActiveId(null);
 
-    const story = stories.find((s) => s.id === active.id);
+    const story = (dragStories ?? storeStories).find((s) => s.id === active.id);
+    setDragStories(null);
+
     if (!story) return;
 
-    try {
-      await fetch(`/api/projects/${projectId}/stories/${story.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: story.status }),
-      });
-    } catch (error) {
-      console.error("Error moving story:", error);
-    }
+    // Commit to store — handles optimistic update + API call + rollback
+    updateStoryStatus(active.id as string, story.status);
   }
 
   const dropAnimation: DropAnimation = {
@@ -331,7 +287,7 @@ export function BoardTab({
               id={column.id}
               title={column.title}
               color={column.color}
-              stories={stories.filter((s) => s.status === column.id)}
+              stories={localStories.filter((s) => s.status === column.id)}
               onStoryClick={setSelectedStory}
               expandedStories={expandedStories}
               storyTasks={storyTasks}

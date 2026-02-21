@@ -1,13 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateStoryDialog } from "./CreateStoryDialog";
-import { DescriptionTab } from "./DescriptionTab";
 import { BacklogTab } from "./BacklogTab";
 import { BoardTab } from "./BoardTab";
 import { ArchivedTab } from "./ArchivedTab";
 import { useRouter } from "next/navigation";
 import type { Story } from "./kanban/types";
+import { useProjectStore } from "@/stores/project";
+
+// Dynamically import DescriptionTab to avoid hydration issues with dnd-kit
+const DescriptionTab = dynamic(() => import("./DescriptionTab").then((mod) => mod.DescriptionTab), {
+  ssr: false,
+});
 
 interface Project {
   id: string;
@@ -20,15 +27,16 @@ interface ProjectPageClientProps {
   stories: Story[];
 }
 
-export function ProjectPageClient({ project, stories }: ProjectPageClientProps) {
+export function ProjectPageClient({ project, stories: initialStories }: ProjectPageClientProps) {
   const router = useRouter();
+  const setProject = useProjectStore((state) => state.setProject);
+
+  // Initialize / sync store with server-rendered data
+  useEffect(() => {
+    setProject(project.id, initialStories);
+  }, [project.id, initialStories, setProject]);
 
   function handleStoryCreated() {
-    router.refresh();
-  }
-
-  function handleStoryStatusChange(storyId: string, newStatus: string) {
-    // Optimistic update would go here if needed
     router.refresh();
   }
 
@@ -56,30 +64,21 @@ export function ProjectPageClient({ project, stories }: ProjectPageClientProps) 
         <TabsContent value="description" className="mt-6">
           <DescriptionTab
             project={{ name: project.name, description: project.description }}
-            stories={stories}
             projectId={project.id}
             onStoryCreated={handleStoryCreated}
           />
         </TabsContent>
 
         <TabsContent value="backlog" className="mt-6">
-          <BacklogTab 
-            stories={stories} 
-            projectId={project.id}
-            onStoryStatusChange={handleStoryStatusChange}
-          />
+          <BacklogTab projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="board" className="mt-6">
-          <BoardTab 
-            stories={stories} 
-            projectId={project.id}
-            onStoryStatusChange={handleStoryStatusChange}
-          />
+          <BoardTab projectId={project.id} />
         </TabsContent>
 
         <TabsContent value="archived" className="mt-6">
-          <ArchivedTab stories={stories} projectId={project.id} />
+          <ArchivedTab projectId={project.id} />
         </TabsContent>
       </Tabs>
     </div>

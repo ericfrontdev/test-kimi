@@ -21,47 +21,51 @@ import {
   DragEndEvent,
   defaultDropAnimationSideEffects,
   DropAnimation,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-interface Story {
-  id: string;
-  storyNumber: number;
-  title: string;
-  status: string;
-  type: "FEATURE" | "FIX";
-}
+import { useProjectStore } from "@/stores/project";
+import type { Story } from "./kanban/types";
 
 interface DescriptionTabProps {
   project: {
     name: string;
     description: string | null;
   };
-  stories: Story[];
   projectId: string;
   onStoryCreated?: () => void;
-  onStoryStatusChange?: (storyId: string, newStatus: string) => void;
 }
 
 export function DescriptionTab({
   project,
-  stories,
   projectId,
   onStoryCreated,
-  onStoryStatusChange,
 }: DescriptionTabProps) {
+  const storeStories = useProjectStore((state) => state.stories);
+  const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
+
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const backlogStories = useMemo(() => stories.filter((s) => s.status === "BACKLOG"), [stories]);
-  const boardStories = useMemo(() => stories.filter((s) => s.status === "TODO"), [stories]);
+  // dragStories: null when not dragging (falls back to storeStories),
+  // snapshot of store at drag-start during active drag
+  const [dragStories, setDragStories] = useState<Story[] | null>(null);
+  const localStories = dragStories ?? storeStories;
+
+  const backlogStories = useMemo(
+    () => localStories.filter((s) => s.status === "BACKLOG"),
+    [localStories]
+  );
+  const boardStories = useMemo(
+    () => localStories.filter((s) => s.status === "TODO"),
+    [localStories]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -75,63 +79,56 @@ export function DescriptionTab({
   );
 
   const activeStory = useMemo(
-    () => stories.find((s) => s.id === activeId),
-    [activeId, stories]
+    () => localStories.find((s) => s.id === activeId),
+    [activeId, localStories]
   );
 
   function handleDragStart(event: DragStartEvent) {
+    // Snapshot current store state so drag updates are isolated
+    setDragStories(storeStories);
     setActiveId(event.active.id as string);
   }
 
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || !dragStories) return;
 
-    const activeStory = stories.find((s) => s.id === active.id);
+    const activeStory = dragStories.find((s) => s.id === active.id);
     if (!activeStory) return;
 
     const overId = over.id as string;
-    
+
     // Check if dropped over a column
     if (overId === "backlog" || overId === "board") {
       const newStatus = overId === "backlog" ? "BACKLOG" : "TODO";
-      if (activeStory.status !== newStatus && onStoryStatusChange) {
-        onStoryStatusChange(active.id as string, newStatus);
+      if (activeStory.status !== newStatus) {
+        setDragStories((prev) =>
+          prev!.map((s) => (s.id === active.id ? { ...s, status: newStatus } : s))
+        );
       }
       return;
     }
 
     // Check if dropped over another story
-    const overStory = stories.find((s) => s.id === overId);
+    const overStory = dragStories.find((s) => s.id === overId);
     if (!overStory || activeStory.status === overStory.status) return;
 
-    if (onStoryStatusChange) {
-      onStoryStatusChange(active.id as string, overStory.status);
-    }
+    setDragStories((prev) =>
+      prev!.map((s) => (s.id === active.id ? { ...s, status: overStory.status } : s))
+    );
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active } = event;
     setActiveId(null);
 
-    const story = stories.find((s) => s.id === active.id);
+    const story = (dragStories ?? storeStories).find((s) => s.id === active.id);
+    setDragStories(null);
+
     if (!story) return;
 
-    // Sync with server
-    try {
-      const response = await fetch(`/api/projects/${projectId}/stories/${story.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: story.status }),
-      });
-
-      if (!response.ok) {
-        // Revert will be handled by parent if needed
-        console.error("Failed to update story status");
-      }
-    } catch (error) {
-      console.error("Error moving story:", error);
-    }
+    // Single call — store handles optimistic update + API call + rollback
+    updateStoryStatus(active.id as string, story.status);
   }
 
   const dropAnimation: DropAnimation = {
@@ -202,7 +199,7 @@ export function DescriptionTab({
             </DragOverlay>
           </DndContext>
 
-          {stories.length === 0 && (
+          {storeStories.length === 0 && (
             <p className="py-4 text-center text-sm text-muted-foreground">
               Aucune story. Cliquez sur le bouton + pour en créer une.
             </p>
@@ -229,7 +226,7 @@ interface ColumnProps {
 }
 
 function Column({ id, title, icon, stories, onStoryClick }: ColumnProps) {
-  const { setNodeRef, isOver } = useSortable({
+  const { setNodeRef, isOver } = useDroppable({
     id,
     data: {
       type: "Column",
@@ -304,17 +301,20 @@ function SortableStoryCard({ story, onClick }: SortableStoryCardProps) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group relative flex items-center gap-1 rounded-md border bg-card p-2.5 text-sm shadow-sm transition-all hover:shadow-md",
-        isDragging && "opacity-30 cursor-grabbing"
+        "group relative flex items-center gap-2 rounded-md border bg-card p-2.5 text-sm shadow-sm transition-all hover:shadow-md",
+        isDragging && "opacity-30 cursor-grabbing z-50"
       )}
     >
-      <button
+      <div
         {...attributes}
         {...listeners}
-        className="cursor-grab p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+        className="cursor-grab p-1 text-muted-foreground hover:text-foreground touch-none select-none"
+        tabIndex={0}
+        role="button"
+        aria-label="Drag to reorder"
       >
         <GripVertical className="h-4 w-4" />
-      </button>
+      </div>
       <div
         onClick={onClick}
         className="flex flex-1 cursor-pointer items-start gap-2 overflow-hidden"

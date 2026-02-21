@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArchiveRestore, Trash2, MoreHorizontal, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,19 +19,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StoryDetailDialog } from "./StoryDetailDialog";
-
-interface Story {
-  id: string;
-  storyNumber: number;
-  title: string;
-  status: string;
-  type: "FEATURE" | "FIX";
-  subtasks: number;
-  completedSubtasks: number;
-}
+import { useProjectStore } from "@/stores/project";
+import type { Story } from "./kanban/types";
 
 interface ArchivedTabProps {
-  stories: Story[];
   projectId: string;
 }
 
@@ -70,8 +60,11 @@ function getStatusLabel(status: string) {
   }
 }
 
-export function ArchivedTab({ stories, projectId }: ArchivedTabProps) {
-  const router = useRouter();
+export function ArchivedTab({ projectId }: ArchivedTabProps) {
+  const stories = useProjectStore((state) => state.stories);
+  const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
+  const removeStory = useProjectStore((state) => state.removeStory);
+
   const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -79,21 +72,7 @@ export function ArchivedTab({ stories, projectId }: ArchivedTabProps) {
   const archivedStories = stories.filter((s) => s.status === "ARCHIVED");
 
   async function handleUnarchive(storyId: string) {
-    try {
-      const response = await fetch(
-        `/api/projects/${projectId}/stories/${storyId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "BACKLOG" }),
-        }
-      );
-      if (response.ok) {
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Erreur lors du désarchivage:", error);
-    }
+    await updateStoryStatus(storyId, "BACKLOG");
   }
 
   async function handleDelete(storyId: string) {
@@ -106,11 +85,11 @@ export function ArchivedTab({ stories, projectId }: ArchivedTabProps) {
         }
       );
       if (response.ok) {
+        removeStory(storyId);
         setStoryToDelete(null);
-        router.refresh();
       }
-    } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
+    } catch {
+      // silently fail
     } finally {
       setIsDeleting(false);
     }
@@ -153,8 +132,8 @@ export function ArchivedTab({ stories, projectId }: ArchivedTabProps) {
             </thead>
             <tbody className="divide-y">
               {archivedStories.map((story) => (
-                <tr 
-                  key={story.id} 
+                <tr
+                  key={story.id}
                   className="bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
                   onClick={() => setSelectedStory(story)}
                 >
