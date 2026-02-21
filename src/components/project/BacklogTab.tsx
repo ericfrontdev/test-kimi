@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Layers } from "lucide-react";
+import { MoreHorizontal, Layers, ArrowRight, ArrowLeft } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,9 +28,44 @@ interface Story {
 
 interface BacklogTabProps {
   stories: Story[];
+  projectId?: string;
+  onStoryStatusChange?: (storyId: string, newStatus: string) => void;
 }
 
-export function BacklogTab({ stories }: BacklogTabProps) {
+export function BacklogTab({ stories, projectId, onStoryStatusChange }: BacklogTabProps) {
+  async function handleMoveToBoard(storyId: string) {
+    if (!onStoryStatusChange) return;
+    onStoryStatusChange(storyId, "TODO");
+    // Sync with server
+    if (projectId) {
+      try {
+        await fetch(`/api/projects/${projectId}/stories/${storyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "TODO" }),
+        });
+      } catch (error) {
+        console.error("Error moving story:", error);
+      }
+    }
+  }
+
+  async function handleMoveToBacklog(storyId: string) {
+    if (!onStoryStatusChange) return;
+    onStoryStatusChange(storyId, "BACKLOG");
+    // Sync with server
+    if (projectId) {
+      try {
+        await fetch(`/api/projects/${projectId}/stories/${storyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "BACKLOG" }),
+        });
+      } catch (error) {
+        console.error("Error moving story:", error);
+      }
+    }
+  }
   const backlogStories = stories.filter((s) => s.status === "BACKLOG");
   const boardStories = stories.filter((s) => s.status !== "BACKLOG");
 
@@ -85,6 +120,13 @@ export function BacklogTab({ stories }: BacklogTabProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => handleMoveToBoard(story.id)}
+                          disabled={!onStoryStatusChange}
+                        >
+                          <ArrowRight className="mr-2 h-4 w-4" />
+                          Envoyer au tableau
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Voir</DropdownMenuItem>
                         <DropdownMenuItem>Modifier</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
@@ -163,6 +205,13 @@ export function BacklogTab({ stories }: BacklogTabProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => handleMoveToBacklog(story.id)}
+                            disabled={!onStoryStatusChange}
+                          >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Renvoyer au backlog
+                          </DropdownMenuItem>
                           <DropdownMenuItem>Voir</DropdownMenuItem>
                           <DropdownMenuItem>Modifier</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">
