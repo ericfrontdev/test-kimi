@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArchiveRestore, Trash2, MoreHorizontal, Layers } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ArchiveRestore, Trash2, MoreHorizontal, Layers, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -61,18 +61,45 @@ function getStatusLabel(status: string) {
 }
 
 export function ArchivedTab({ projectId }: ArchivedTabProps) {
-  const stories = useProjectStore((state) => state.stories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
   const removeStory = useProjectStore((state) => state.removeStory);
 
+  const [archivedStories, setArchivedStories] = useState<Story[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const archivedStories = stories.filter((s) => s.status === "ARCHIVED");
+  const fetchArchived = useCallback(async (skip: number, append = false) => {
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/stories?status=ARCHIVED&skip=${skip}&take=50`
+      );
+      if (res.ok) {
+        const { stories, hasMore: more } = await res.json();
+        setArchivedStories((prev) => append ? [...prev, ...stories] : stories);
+        setHasMore(more);
+      }
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchArchived(0);
+  }, [fetchArchived]);
+
+  async function handleLoadMore() {
+    setIsLoadingMore(true);
+    await fetchArchived(archivedStories.length, true);
+  }
 
   async function handleUnarchive(storyId: string) {
     await updateStoryStatus(storyId, "BACKLOG");
+    setArchivedStories((prev) => prev.filter((s) => s.id !== storyId));
   }
 
   async function handleDelete(storyId: string) {
@@ -80,12 +107,11 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
     try {
       const response = await fetch(
         `/api/projects/${projectId}/stories/${storyId}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
       if (response.ok) {
         removeStory(storyId);
+        setArchivedStories((prev) => prev.filter((s) => s.id !== storyId));
         setStoryToDelete(null);
       }
     } catch {
@@ -93,6 +119,14 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
     } finally {
       setIsDeleting(false);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   if (archivedStories.length === 0) {
@@ -202,6 +236,19 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
             </tbody>
           </table>
         </div>
+
+      {hasMore && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            onClick={handleLoadMore}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Charger plus
+          </Button>
+        </div>
+      )}
       </div>
 
       <Dialog open={!!storyToDelete} onOpenChange={(open) => !open && setStoryToDelete(null)}>

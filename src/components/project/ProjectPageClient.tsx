@@ -25,16 +25,17 @@ interface Project {
 interface ProjectPageClientProps {
   project: Project;
   stories: Story[];
+  hasMoreStories: boolean;
 }
 
-export function ProjectPageClient({ project, stories: initialStories }: ProjectPageClientProps) {
+export function ProjectPageClient({ project, stories: initialStories, hasMoreStories }: ProjectPageClientProps) {
   const router = useRouter();
   const setProject = useProjectStore((state) => state.setProject);
 
   // Initialize / sync store with server-rendered data
   useEffect(() => {
-    setProject(project.id, initialStories);
-  }, [project.id, initialStories, setProject]);
+    setProject(project.id, initialStories, hasMoreStories);
+  }, [project.id, initialStories, hasMoreStories, setProject]);
 
   function handleStoryCreated() {
     router.refresh();
