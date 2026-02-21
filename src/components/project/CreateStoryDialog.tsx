@@ -338,7 +338,7 @@ export function CreateStoryDialog({
                 <div className="space-y-1.5">
                   <label className="text-xs text-muted-foreground flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    Propriétaire
+                    Assigné à
                   </label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
