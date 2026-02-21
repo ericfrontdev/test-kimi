@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { validateBody, createProjectSchema } from "@/lib/schemas";
 
 // Ensure user exists in database
 async function ensureUserExists(
@@ -13,7 +14,6 @@ async function ensureUserExists(
   });
 
   if (!existingUser) {
-    console.log("Creating user in database:", userId);
     return await prisma.user.create({
       data: {
         id: userId,
@@ -87,25 +87,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const body = await request.json();
-    const { name, description, color } = body;
+  const { data, response } = await validateBody(request, createProjectSchema);
+  if (response) return response;
 
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Project name is required" },
-        { status: 400 }
-      );
-    }
+  try {
+    const { name, description, color } = data;
 
     // Ensure user exists in database before creating project
     await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
     const project = await prisma.project.create({
       data: {
-        name: name.trim(),
-        description: description?.trim() || null,
-        color: color || null,
+        name,
+        description: description ?? null,
+        color: color ?? null,
         ownerId: user.id,
         members: {
           create: {
@@ -131,10 +126,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(project, { status: 201 });
-  } catch (error) {
-    console.error("Error creating project:", error);
+  } catch {
     return NextResponse.json(
-      { error: String(error) },
+      { error: "Échec de la création du projet" },
       { status: 500 }
     );
   }

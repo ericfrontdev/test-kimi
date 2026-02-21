@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { validateBody, createTaskCommentSchema } from "@/lib/schemas";
 
 // GET /api/projects/[id]/stories/[storyId]/tasks/[taskId]/comments
 export async function GET(
@@ -29,7 +30,7 @@ export async function GET(
     });
 
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
     // Check if task exists and belongs to story
@@ -42,7 +43,7 @@ export async function GET(
     });
 
     if (!task) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      return NextResponse.json({ error: "Tâche non trouvée" }, { status: 404 });
     }
 
     const comments = await prisma.taskComment.findMany({
@@ -60,10 +61,9 @@ export async function GET(
     });
 
     return NextResponse.json(comments);
-  } catch (error) {
-    console.error("Error fetching task comments:", error);
+  } catch {
     return NextResponse.json(
-      { error: "Failed to fetch comments" },
+      { error: "Échec de la récupération des commentaires" },
       { status: 500 }
     );
   }
@@ -82,15 +82,11 @@ export async function POST(
   }
 
   const { id: projectId, storyId, taskId } = await params;
-  const body = await request.json();
-  const { content, mentions = [] } = body;
 
-  if (!content?.trim()) {
-    return NextResponse.json(
-      { error: "Content is required" },
-      { status: 400 }
-    );
-  }
+  const { data, response } = await validateBody(request, createTaskCommentSchema);
+  if (response) return response;
+
+  const { content, mentions } = data;
 
   try {
     // Check if user has access to project
@@ -105,7 +101,7 @@ export async function POST(
     });
 
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
     // Check if task exists and belongs to story
@@ -127,12 +123,12 @@ export async function POST(
     });
 
     if (!task) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      return NextResponse.json({ error: "Tâche non trouvée" }, { status: 404 });
     }
 
     const comment = await prisma.taskComment.create({
       data: {
-        content: content.trim(),
+        content,
         taskId,
         authorId: user.id,
       },
@@ -171,10 +167,9 @@ export async function POST(
     }
 
     return NextResponse.json(comment, { status: 201 });
-  } catch (error) {
-    console.error("Error creating task comment:", error);
+  } catch {
     return NextResponse.json(
-      { error: "Failed to create comment" },
+      { error: "Échec de la création du commentaire" },
       { status: 500 }
     );
   }

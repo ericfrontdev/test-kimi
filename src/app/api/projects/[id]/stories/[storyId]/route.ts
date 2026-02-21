@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { validateBody, updateStorySchema } from "@/lib/schemas";
 
 // GET /api/projects/[id]/stories/[storyId] - Get story details with subtasks
 export async function GET(
@@ -81,8 +82,7 @@ export async function GET(
     }
 
     return NextResponse.json(story);
-  } catch (error) {
-    console.error("Error fetching story:", error);
+  } catch {
     return NextResponse.json(
       { error: "Échec de la récupération de la story" },
       { status: 500 }
@@ -106,9 +106,11 @@ export async function PATCH(
 
   const { id: projectId, storyId } = await params;
 
+  const { data, response } = await validateBody(request, updateStorySchema);
+  if (response) return response;
+
   try {
-    const body = await request.json();
-    const { title, description, status, priority, assignee } = body;
+    const { title, description, status, priority, assignee } = data;
 
     // Verify project exists and user has access (owner or member)
     const project = await prisma.project.findFirst({
@@ -143,11 +145,11 @@ export async function PATCH(
     const story = await prisma.story.update({
       where: { id: storyId },
       data: {
-        ...(title !== undefined && { title: title.trim() }),
-        ...(description !== undefined && { description: description?.trim() || null }),
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description: description ?? null }),
         ...(status !== undefined && { status }),
         ...(priority !== undefined && { priority }),
-        ...(assignee !== undefined && { assigneeId: assignee || null }),
+        ...(assignee !== undefined && { assigneeId: assignee ?? null }),
       },
       include: {
         assignee: {
@@ -157,12 +159,9 @@ export async function PATCH(
     });
 
     return NextResponse.json(story);
-  } catch (error: any) {
-    console.error("Error updating story:", error);
-    console.error("Error message:", error?.message);
-    console.error("Error code:", error?.code);
+  } catch {
     return NextResponse.json(
-      { error: "Échec de la mise à jour de la story", details: error?.message },
+      { error: "Échec de la mise à jour de la story" },
       { status: 500 }
     );
   }
@@ -189,7 +188,10 @@ export async function DELETE(
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        OR: [{ ownerId: user.id }, { members: { some: { id: user.id } } }],
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } },
+        ],
       },
     });
 
@@ -217,8 +219,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting story:", error);
+  } catch {
     return NextResponse.json(
       { error: "Échec de la suppression de la story" },
       { status: 500 }

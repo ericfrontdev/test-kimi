@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { validateBody, createStorySchema } from "@/lib/schemas";
 
 // POST /api/projects/[id]/stories - Create new story
 export async function POST(
@@ -18,20 +19,21 @@ export async function POST(
 
   const { id: projectId } = await params;
 
+  const { data, response } = await validateBody(request, createStorySchema);
+  if (response) return response;
+
   try {
-    const body = await request.json();
-    const { title, description, status = "BACKLOG" } = body;
+    const { title, description, status = "BACKLOG", type, priority } = data;
 
-    if (!title || typeof title !== "string" || title.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Le titre de la story est requis" },
-        { status: 400 }
-      );
-    }
-
-    // Verify project exists and belongs to user
+    // Verify project exists and user has access (owner or member)
     const project = await prisma.project.findFirst({
-      where: { id: projectId, ownerId: user.id },
+      where: {
+        id: projectId,
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } },
+        ],
+      },
     });
 
     if (!project) {
@@ -58,17 +60,18 @@ export async function POST(
 
     const story = await prisma.story.create({
       data: {
-        title: title.trim(),
-        description: description?.trim() || null,
+        title,
+        description: description ?? null,
         status,
+        ...(type !== undefined && { type }),
+        ...(priority !== undefined && { priority }),
         projectId,
         authorId: user.id,
       },
     });
 
     return NextResponse.json(story, { status: 201 });
-  } catch (error) {
-    console.error("Error creating story:", error);
+  } catch {
     return NextResponse.json(
       { error: "Échec de la création de la story" },
       { status: 500 }

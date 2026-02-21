@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { validateBody, updateProjectSchema } from "@/lib/schemas";
 
 // Ensure user exists in database
 async function ensureUserExists(
@@ -44,9 +45,11 @@ export async function PATCH(
 
   const { id } = await params;
 
+  const { data, response } = await validateBody(request, updateProjectSchema);
+  if (response) return response;
+
   try {
-    const body = await request.json();
-    const { name, description } = body;
+    const { name, description } = data;
 
     const existingProject = await prisma.project.findFirst({
       where: { id, ownerId: user.id },
@@ -62,18 +65,15 @@ export async function PATCH(
     const project = await prisma.project.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(description !== undefined && {
-          description: description?.trim() || null,
-        }),
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description: description ?? null }),
       },
     });
 
     return NextResponse.json(project);
-  } catch (error) {
-    console.error("Error updating project:", error);
+  } catch {
     return NextResponse.json(
-      { error: "Failed to update project" },
+      { error: "Échec de la mise à jour du projet" },
       { status: 500 }
     );
   }
@@ -115,10 +115,9 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting project:", error);
+  } catch {
     return NextResponse.json(
-      { error: "Failed to delete project" },
+      { error: "Échec de la suppression du projet" },
       { status: 500 }
     );
   }
