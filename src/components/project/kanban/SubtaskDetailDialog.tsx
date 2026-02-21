@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, CheckSquare, Calendar, User, Clock, Loader2, Edit3, Check, Circle } from "lucide-react";
+import { MessageSquare, CheckSquare, Calendar, User, Clock, Loader2, Edit3 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn, getInitials } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import type { Task, ProjectUser } from "./types";
+import type { Task, ProjectUser, TaskStatus } from "./types";
+import { TaskStatusDropdown } from "./TaskStatusDropdown";
+import { taskStatuses } from "./types";
 
 interface Comment {
   id: string;
@@ -34,7 +36,7 @@ interface SubtaskDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onStatusChange?: (storyId: string, taskId: string, status: "TODO" | "DONE") => void;
+  onStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 function formatDate(dateString: string) {
@@ -92,8 +94,8 @@ export function SubtaskDetailDialog({
         const data = await response.json();
         setComments(data);
       }
-    } catch (error) {
-      console.error("Error fetching comments:", error);
+    } catch {
+      // silently fail
     } finally {
       setIsLoadingComments(false);
     }
@@ -119,8 +121,8 @@ export function SubtaskDetailDialog({
         setComments((prev) => [...prev, comment]);
         setNewComment("");
       }
-    } catch (error) {
-      console.error("Error submitting comment:", error);
+    } catch {
+      // silently fail
     } finally {
       setIsSubmittingComment(false);
     }
@@ -139,8 +141,8 @@ export function SubtaskDetailDialog({
         setTaskDetail({ ...task, description });
         setIsEditingDescription(false);
       }
-    } catch (error) {
-      console.error("Error saving description:", error);
+    } catch {
+      // silently fail
     } finally {
       setIsSavingDescription(false);
     }
@@ -151,9 +153,8 @@ export function SubtaskDetailDialog({
     setIsEditingDescription(true);
   }
 
-  function handleStatusToggle() {
+  function handleStatusChange(newStatus: TaskStatus) {
     if (!task) return;
-    const newStatus = task.status === "DONE" ? "TODO" : "DONE";
     onStatusChange?.(storyId, task.id, newStatus);
   }
 
@@ -165,7 +166,7 @@ export function SubtaskDetailDialog({
   if (!displayTask) return null;
 
   const subtaskId = `${storyType}-${storyNumber}-${displayTask.taskNumber}`;
-  const isDone = displayTask.status === "DONE";
+  const currentStatusConfig = taskStatuses.find((s) => s.id === displayTask.status);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,7 +187,7 @@ export function SubtaskDetailDialog({
 
         <div className="flex flex-1 overflow-hidden" style={{ maxHeight: 'calc(90vh - 65px)' }}>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <h1 className={cn("text-2xl font-semibold", isDone && "line-through text-muted-foreground")}>
+            <h1 className={cn("text-2xl font-semibold", displayTask.status === "DONE" && "line-through text-muted-foreground")}>
               {displayTask.title}
             </h1>
 
@@ -323,7 +324,7 @@ export function SubtaskDetailDialog({
                 </div>
                 <div>
                   <span className="font-medium">Vous</span> avez cree cette sous-tache
-                  <Badge variant="secondary" className="text-xs ml-2">{isDone ? "Termine" : "A faire"}</Badge>
+                  <Badge variant="secondary" className="text-xs ml-2">{currentStatusConfig?.title}</Badge>
                   <p className="text-xs text-muted-foreground mt-1">A l'instant</p>
                 </div>
               </div>
@@ -341,15 +342,10 @@ export function SubtaskDetailDialog({
                 <CheckSquare className="h-3 w-3" />
                 Statut
               </label>
-              <button
-                onClick={handleStatusToggle}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors w-full",
-                  isDone ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" : "bg-slate-500/10 text-slate-600 hover:bg-slate-500/20"
-                )}
-              >
-                {isDone ? <><Check className="h-4 w-4" />Termine</> : <><Circle className="h-4 w-4" />A faire</>}
-              </button>
+              <TaskStatusDropdown
+                currentStatus={displayTask.status}
+                onStatusChange={handleStatusChange}
+              />
             </div>
 
             <div className="space-y-1">

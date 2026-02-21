@@ -1,6 +1,6 @@
 "use client";
 
-import { useSortable } from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 import { useKanbanStore } from "@/stores/kanban";
@@ -24,7 +24,7 @@ export function KanbanColumn({
   onTaskStatusChange,
 }: ColumnProps) {
   const projectId = useKanbanStore((state) => state.currentProjectId);
-  const { setNodeRef, isOver } = useSortable({
+  const { setNodeRef, isOver } = useDroppable({
     id,
     data: { type: "Column" },
   });

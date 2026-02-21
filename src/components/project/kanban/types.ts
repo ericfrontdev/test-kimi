@@ -11,12 +11,21 @@ export interface TaskComment {
   };
 }
 
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
+
+export const taskStatuses: { id: TaskStatus; title: string; color: string }[] = [
+  { id: "TODO", title: "À faire", color: "bg-slate-400" },
+  { id: "IN_PROGRESS", title: "En cours", color: "bg-blue-500" },
+  { id: "IN_REVIEW", title: "En révision", color: "bg-amber-500" },
+  { id: "DONE", title: "Terminé", color: "bg-emerald-500" },
+];
+
 export interface Task {
   id: string;
   taskNumber: number;
   title: string;
   description?: string | null;
-  status: "TODO" | "DONE";
+  status: TaskStatus;
   assignee?: {
     name: string | null;
     email: string;
@@ -60,7 +69,7 @@ export interface ColumnProps {
   onAssigneeChange: (storyId: string, assigneeId: string | null, assignSubtasks: boolean) => void;
   projectUsers: ProjectUser[];
   onTaskAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onTaskStatusChange?: (storyId: string, taskId: string, status: "TODO" | "DONE") => void;
+  onTaskStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 export interface ProjectUser {

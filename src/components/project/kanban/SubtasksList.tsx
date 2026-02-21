@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useKanbanStore } from "@/stores/kanban";
 import { SubtaskCard } from "./SubtaskCard";
 import { SubtaskDetailDialog } from "./SubtaskDetailDialog";
-import type { Task, ProjectUser } from "./types";
+import type { Task, ProjectUser, TaskStatus } from "./types";
 
 interface SubtasksListProps {
   tasks: Task[];
@@ -14,7 +14,7 @@ interface SubtasksListProps {
   storyNumber: number;
   projectUsers: ProjectUser[];
   onTaskAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onTaskStatusChange?: (storyId: string, taskId: string, status: "TODO" | "DONE") => void;
+  onTaskStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 export function SubtasksList({ 

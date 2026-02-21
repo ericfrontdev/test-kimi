@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, getInitials } from "@/lib/utils";
-import type { Task, ProjectUser } from "./types";
+import type { Task, ProjectUser, TaskStatus } from "./types";
+import { TaskStatusDropdown } from "./TaskStatusDropdown";
 
 interface SubtaskCardProps {
   task: Task;
@@ -20,7 +21,7 @@ interface SubtaskCardProps {
   storyNumber: number;
   projectUsers: ProjectUser[];
   onAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onStatusChange?: (storyId: string, taskId: string, status: "TODO" | "DONE") => void;
+  onStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 export function SubtaskCard({ 
@@ -37,9 +38,7 @@ export function SubtaskCard({
   // Format: FEATURE-32-1 (story ID + task number)
   const subtaskId = `${storyType}-${storyNumber}-${task.taskNumber}`;
 
-  function handleStatusToggle(e: React.MouseEvent) {
-    e.stopPropagation();
-    const newStatus = task.status === "DONE" ? "TODO" : "DONE";
+  function handleStatusChange(newStatus: TaskStatus) {
     onStatusChange?.(storyId, task.id, newStatus);
   }
 
@@ -106,7 +105,7 @@ export function SubtaskCard({
           </DropdownMenu>
         </div>
 
-        {/* Middle: Title with status circle aligned right */}
+        {/* Middle: Title with status dropdown aligned right */}
         <div className="flex items-start gap-2 mt-2.5">
           <p className={cn(
             "text-xs font-medium leading-snug flex-1",
@@ -115,19 +114,12 @@ export function SubtaskCard({
             {task.title}
           </p>
           
-          {/* Status circle - clickable to toggle status */}
-          <button
-            className="shrink-0 mt-0.5 cursor-pointer"
-            onClick={handleStatusToggle}
-            title={task.status === "DONE" ? "Marquer comme à faire" : "Marquer comme terminé"}
-          >
-            <div 
-              className={cn(
-                "w-2.5 h-2.5 rounded-full transition-colors",
-                task.status === "DONE" ? "bg-emerald-500" : "bg-slate-300 hover:bg-slate-400"
-              )} 
-            />
-          </button>
+          {/* Status dropdown */}
+          <TaskStatusDropdown
+            currentStatus={task.status}
+            onStatusChange={handleStatusChange}
+            size="sm"
+          />
         </div>
       </CardContent>
     </Card>

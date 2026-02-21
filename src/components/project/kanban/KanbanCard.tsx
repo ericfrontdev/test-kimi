@@ -6,7 +6,7 @@ import { CheckSquare, ChevronRight, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Story, Task, ProjectUser } from "./types";
+import type { Story, Task, ProjectUser, TaskStatus } from "./types";
 import { AssigneeDropdown } from "./AssigneeDropdown";
 import { PriorityDropdown } from "./PriorityDropdown";
 import { SubtasksList } from "./SubtasksList";
@@ -22,7 +22,7 @@ interface KanbanCardProps {
   onAssigneeChange: (assigneeId: string | null, assignSubtasks: boolean) => void;
   projectUsers: ProjectUser[];
   onTaskAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onTaskStatusChange?: (storyId: string, taskId: string, status: "TODO" | "DONE") => void;
+  onTaskStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 export function KanbanCard({

@@ -23,7 +23,7 @@ enum StoryType {
 enum TaskStatus {
   TODO
   IN_PROGRESS
-  BLOCKED
+  IN_REVIEW
   DONE
 }
 
