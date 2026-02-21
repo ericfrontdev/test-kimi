@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateStoryDialog } from "./CreateStoryDialog";
 import { BacklogTab } from "./BacklogTab";
@@ -31,10 +31,10 @@ interface ProjectPageClientProps {
   hasMoreStories: boolean;
 }
 
-export function ProjectPageClient({ project, stories: initialStories, hasMoreStories }: ProjectPageClientProps) {
+// Isolated component so useSearchParams is inside a Suspense boundary
+function ProjectTabs({ project, onStoryCreated }: { project: Project; onStoryCreated: () => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const setProject = useProjectStore((state) => state.setProject);
 
   const rawTab = searchParams.get("tab");
   const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "description";
@@ -45,7 +45,42 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
     router.replace(`?${params.toString()}`, { scroll: false });
   }
 
-  // Initialize / sync store with server-rendered data
+  return (
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <TabsList>
+        <TabsTrigger value="description">Description</TabsTrigger>
+        <TabsTrigger value="backlog">Backlog</TabsTrigger>
+        <TabsTrigger value="board">Tableau</TabsTrigger>
+        <TabsTrigger value="archived">Archivées</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="description" className="mt-6">
+        <DescriptionTab
+          project={{ name: project.name, description: project.description }}
+          projectId={project.id}
+          onStoryCreated={onStoryCreated}
+        />
+      </TabsContent>
+
+      <TabsContent value="backlog" className="mt-6">
+        <BacklogTab projectId={project.id} />
+      </TabsContent>
+
+      <TabsContent value="board" className="mt-6">
+        <BoardTab projectId={project.id} />
+      </TabsContent>
+
+      <TabsContent value="archived" className="mt-6">
+        <ArchivedTab projectId={project.id} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+export function ProjectPageClient({ project, stories: initialStories, hasMoreStories }: ProjectPageClientProps) {
+  const router = useRouter();
+  const setProject = useProjectStore((state) => state.setProject);
+
   useEffect(() => {
     setProject(project.id, initialStories, hasMoreStories);
   }, [project.id, initialStories, hasMoreStories, setProject]);
@@ -66,35 +101,19 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
         />
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList>
-          <TabsTrigger value="description">Description</TabsTrigger>
-          <TabsTrigger value="backlog">Backlog</TabsTrigger>
-          <TabsTrigger value="board">Tableau</TabsTrigger>
-          <TabsTrigger value="archived">Archivées</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="description" className="mt-6">
-          <DescriptionTab
-            project={{ name: project.name, description: project.description }}
-            projectId={project.id}
-            onStoryCreated={handleStoryCreated}
-          />
-        </TabsContent>
-
-        <TabsContent value="backlog" className="mt-6">
-          <BacklogTab projectId={project.id} />
-        </TabsContent>
-
-        <TabsContent value="board" className="mt-6">
-          <BoardTab projectId={project.id} />
-        </TabsContent>
-
-        <TabsContent value="archived" className="mt-6">
-          <ArchivedTab projectId={project.id} />
-        </TabsContent>
-      </Tabs>
+      {/* Tabs — Suspense required by useSearchParams in Next.js App Router */}
+      <Suspense fallback={
+        <Tabs defaultValue="description" className="w-full">
+          <TabsList>
+            <TabsTrigger value="description">Description</TabsTrigger>
+            <TabsTrigger value="backlog">Backlog</TabsTrigger>
+            <TabsTrigger value="board">Tableau</TabsTrigger>
+            <TabsTrigger value="archived">Archivées</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      }>
+        <ProjectTabs project={project} onStoryCreated={handleStoryCreated} />
+      </Suspense>
     </div>
   );
 }
