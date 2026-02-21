@@ -310,6 +310,7 @@ export function StoryDetailDialog({
                       value={editedDescription}
                       onChange={setEditedDescription}
                       placeholder="Décrivez la story..."
+                      variant="borderless"
                     />
                     <div className="flex items-center justify-end gap-2">
                       <Button 

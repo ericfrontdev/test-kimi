@@ -198,6 +198,7 @@ export function SubtaskDetailDialog({
                     value={description}
                     onChange={setDescription}
                     placeholder="Decrivez la sous-tache..."
+                    variant="borderless"
                   />
                   <div className="flex items-center justify-end gap-2">
                     <Button 
