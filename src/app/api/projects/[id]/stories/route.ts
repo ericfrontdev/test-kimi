@@ -102,7 +102,7 @@ export async function POST(
   if (response) return response;
 
   try {
-    const { title, description, status = "BACKLOG", type, priority } = data;
+    const { title, description, status = "BACKLOG", type, priority, assigneeId } = data;
 
     // Verify project exists and user has access (owner or member)
     const project = await prisma.project.findFirst({
@@ -120,6 +120,22 @@ export async function POST(
         { error: "Projet non trouvé" },
         { status: 404 }
       );
+    }
+
+    // Validate assignee belongs to the project
+    if (assigneeId) {
+      const isProjectMember =
+        project.ownerId === assigneeId ||
+        (await prisma.projectMember.count({
+          where: { projectId, userId: assigneeId },
+        })) > 0;
+
+      if (!isProjectMember) {
+        return NextResponse.json(
+          { error: "L'assigné n'est pas membre du projet" },
+          { status: 400 }
+        );
+      }
     }
 
     // Ensure user exists in database
@@ -144,8 +160,14 @@ export async function POST(
         status,
         ...(type !== undefined && { type }),
         ...(priority !== undefined && { priority }),
+        ...(assigneeId ? { assigneeId } : {}),
         projectId,
         authorId: user.id,
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true, email: true },
+        },
       },
     });
 

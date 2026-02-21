@@ -64,6 +64,7 @@ export const createStorySchema = z.object({
   status: StoryStatusSchema.optional(),
   type: StoryTypeSchema.optional(),
   priority: z.number().int().min(0).max(3).optional(),
+  assigneeId: z.string().uuid().nullish(),
 });
 
 export const updateStorySchema = z.object({

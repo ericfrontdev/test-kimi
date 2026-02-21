@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +21,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
+import type { ProjectUser } from "@/components/project/kanban/types";
 
 interface CreateStoryDialogProps {
   projectId: string;
@@ -61,9 +63,15 @@ export function CreateStoryDialog({
   const [status, setStatus] = useState("BACKLOG");
   const [type, setType] = useState<"FEATURE" | "FIX">("FEATURE");
   const [priority, setPriority] = useState(2);
+  const [assigneeId, setAssigneeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createAnother, setCreateAnother] = useState(false);
+
+  const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
+    open ? `/api/projects/${projectId}/members` : null,
+    fetcher
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -85,6 +93,7 @@ export function CreateStoryDialog({
           status,
           type,
           priority,
+          assigneeId: assigneeId ?? undefined,
         }),
       });
 
@@ -100,6 +109,7 @@ export function CreateStoryDialog({
         setStatus("BACKLOG");
         setType("FEATURE");
         setPriority(2);
+        setAssigneeId(null);
       } else {
         // Close dialog and reset
         setTitle("");
@@ -107,6 +117,7 @@ export function CreateStoryDialog({
         setStatus("BACKLOG");
         setType("FEATURE");
         setPriority(2);
+        setAssigneeId(null);
         setOpen(false);
       }
       
@@ -124,12 +135,14 @@ export function CreateStoryDialog({
     setStatus("BACKLOG");
     setType("FEATURE");
     setPriority(2);
+    setAssigneeId(null);
     setOpen(false);
   }
 
   const currentStatus = statusOptions.find((s) => s.id === status);
   const currentType = typeOptions.find((t) => t.id === type);
   const currentPriority = priorityOptions.find((p) => p.id === priority);
+  const currentAssignee = projectUsers.find((u) => u.id === assigneeId);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -327,9 +340,40 @@ export function CreateStoryDialog({
                     <User className="h-3 w-3" />
                     Propriétaire
                   </label>
-                  <Button variant="ghost" className="w-full justify-start h-auto py-1.5 px-2 -ml-2 font-normal text-muted-foreground" disabled>
-                    Personne
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start h-auto py-1.5 px-2 -ml-2 font-normal">
+                        {currentAssignee ? (
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
+                              {getInitials(currentAssignee.name || currentAssignee.email)}
+                            </div>
+                            <span>{currentAssignee.name || currentAssignee.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Personne</span>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuItem onClick={() => setAssigneeId(null)}>
+                        <span className="text-muted-foreground">Personne</span>
+                      </DropdownMenuItem>
+                      {projectUsers.map((u) => (
+                        <DropdownMenuItem key={u.id} onClick={() => setAssigneeId(u.id)}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
+                              {getInitials(u.name || u.email)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm">{u.name || u.email}</span>
+                              {u.name && <span className="text-xs text-muted-foreground">{u.email}</span>}
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="space-y-1.5">
