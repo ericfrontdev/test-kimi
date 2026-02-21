@@ -71,7 +71,11 @@ export function ProjectPageClient({ project, stories }: ProjectPageClientProps) 
         </TabsContent>
 
         <TabsContent value="board" className="mt-6">
-          <BoardTab stories={stories} projectId={project.id} />
+          <BoardTab 
+            stories={stories} 
+            projectId={project.id}
+            onStoryStatusChange={handleStoryStatusChange}
+          />
         </TabsContent>
 
         <TabsContent value="archived" className="mt-6">
