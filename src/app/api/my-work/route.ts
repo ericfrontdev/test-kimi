@@ -73,7 +73,7 @@ export async function GET() {
 
     const activities = recentStories.map((story) => ({
       id: story.id,
-      content: `You updated "${story.title}" in ${story.project.name}`,
+      content: `Vous avez modifié « ${story.title} » dans ${story.project.name}`,
       time: story.updatedAt.toISOString(),
     }));
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMyWorkStore } from "@/stores/my-work";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function formatTime(isoString: string): string {
@@ -9,17 +10,28 @@ function formatTime(isoString: string): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
-  
+
   if (hours < 1) return "À l'instant";
   if (hours < 24) return `Il y a ${hours}h`;
-  return date.toLocaleDateString('fr-CA');
+  return date.toLocaleDateString("fr-CA");
 }
 
 export function ActivityFeed() {
   const { activities, isLoading, fetchMyWork } = useMyWorkStore();
+  const [initial, setInitial] = useState<string>("");
 
   useEffect(() => {
     fetchMyWork();
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const fullName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email ||
+        "";
+      setInitial(fullName.charAt(0).toUpperCase());
+    });
   }, [fetchMyWork]);
 
   if (isLoading) {
@@ -63,7 +75,7 @@ export function ActivityFeed() {
         </div>
 
         <div className="space-y-4">
-          <div className="text-sm font-medium text-muted-foreground">Aujourd'hui</div>
+          <div className="text-sm font-medium text-muted-foreground">Aujourd&apos;hui</div>
 
           {activities.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
@@ -73,7 +85,7 @@ export function ActivityFeed() {
             activities.map((activity) => (
               <div key={activity.id} className="flex gap-3">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
-                  E
+                  {initial}
                 </div>
                 <div className="flex-1 space-y-1">
                   <p className="text-sm leading-snug">{activity.content}</p>
