@@ -95,6 +95,33 @@ export async function GET() {
       project: item.checklist.story.project.name,
     }));
 
+    // Get stories with upcoming due dates (next 30 days)
+    const now = new Date();
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const upcomingStories = await prisma.story.findMany({
+      where: {
+        OR: [
+          { authorId: user.id },
+          { assigneeId: user.id },
+        ],
+        dueDate: { not: null, lte: in30Days },
+        status: { not: "DONE" },
+      },
+      include: {
+        project: { select: { name: true } },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+
+    const formattedUpcomingStories = upcomingStories.map((story) => ({
+      id: story.id,
+      title: story.title,
+      status: story.status,
+      project: story.project.name,
+      dueDate: story.dueDate!.toISOString(),
+    }));
+
     // Get recent activity (simplified - in real app would have Activity model)
     const recentStories = await prisma.story.findMany({
       where: {
@@ -138,6 +165,7 @@ export async function GET() {
     return NextResponse.json({
       stories: formattedStories,
       checklistItems: formattedChecklistItems,
+      upcomingStories: formattedUpcomingStories,
       activities,
       stats: {
         projects: totalProjects,

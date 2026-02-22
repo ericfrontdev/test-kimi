@@ -17,6 +17,14 @@ interface Activity {
   time: string;
 }
 
+export interface UpcomingStory {
+  id: string;
+  title: string;
+  status: string;
+  project: string;
+  dueDate: string;
+}
+
 export interface ChecklistItem {
   id: string;
   title: string;
@@ -38,6 +46,7 @@ interface Stats {
 interface MyWorkState {
   stories: Story[];
   checklistItems: ChecklistItem[];
+  upcomingStories: UpcomingStory[];
   activities: Activity[];
   stats: Stats;
   isLoading: boolean;
@@ -51,6 +60,7 @@ interface MyWorkState {
 export const useMyWorkStore = create<MyWorkState>((set, get) => ({
   stories: [],
   checklistItems: [],
+  upcomingStories: [],
   activities: [],
   stats: {
     projects: 0,
@@ -78,6 +88,7 @@ export const useMyWorkStore = create<MyWorkState>((set, get) => ({
       set({
         stories: data.stories,
         checklistItems: data.checklistItems,
+        upcomingStories: data.upcomingStories,
         activities: data.activities,
         stats: data.stats,
         isLoading: false,
