@@ -80,7 +80,7 @@ export async function POST(
   if (response) return response;
 
   try {
-    const { content } = data;
+    const { content, mentions } = data;
 
     // Verify project exists and user has access
     const project = await prisma.project.findFirst({
@@ -100,6 +100,7 @@ export async function POST(
     // Verify story exists
     const story = await prisma.story.findFirst({
       where: { id: storyId, projectId },
+      select: { id: true, storyNumber: true, type: true, title: true },
     });
 
     if (!story) {
@@ -119,6 +120,24 @@ export async function POST(
         },
       },
     });
+
+    // Create notifications for mentioned users
+    if (mentions.length > 0) {
+      const authorName = comment.author.name || comment.author.email;
+      const storyRef = `${story.type}-${story.storyNumber}`;
+
+      await prisma.notification.createMany({
+        data: mentions
+          .filter((mentionedUserId: string) => mentionedUserId !== user.id)
+          .map((mentionedUserId: string) => ({
+            type: "COMMENT_MENTION" as const,
+            title: "Mention dans un commentaire",
+            message: `${authorName} vous a mentionné dans un commentaire sur la story ${storyRef} — ${story.title}`,
+            userId: mentionedUserId,
+            data: JSON.stringify({ projectId, storyId, commentId: comment.id }),
+          })),
+      });
+    }
 
     return NextResponse.json(comment, { status: 201 });
   } catch {

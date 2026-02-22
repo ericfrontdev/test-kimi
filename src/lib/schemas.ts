@@ -126,6 +126,7 @@ export const createCommentSchema = z.object({
     .min(1, "Le contenu est requis")
     .max(5000, "Le commentaire ne peut pas dépasser 5000 caractères")
     .trim(),
+  mentions: z.array(z.string()).optional().default([]),
 });
 
 export const createTaskCommentSchema = z.object({
