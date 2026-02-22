@@ -15,13 +15,15 @@ interface Activity {
   time: string;
 }
 
-interface ChecklistItem {
+export interface ChecklistItem {
   id: string;
   title: string;
   status: string;
+  checklistId: string;
   checklist: string;
   story: string;
   storyId: string;
+  projectId: string;
   project: string;
 }
 
@@ -40,6 +42,7 @@ interface MyWorkState {
   error: string | null;
 
   fetchMyWork: () => Promise<void>;
+  updateChecklistItemStatus: (itemId: string, status: string) => void;
 }
 
 export const useMyWorkStore = create<MyWorkState>((set) => ({
@@ -70,5 +73,13 @@ export const useMyWorkStore = create<MyWorkState>((set) => ({
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
     }
+  },
+
+  updateChecklistItemStatus: (itemId, status) => {
+    set((state) => ({
+      checklistItems: state.checklistItems.map((item) =>
+        item.id === itemId ? { ...item, status } : item
+      ),
+    }));
   },
 }));

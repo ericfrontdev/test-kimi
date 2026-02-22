@@ -56,7 +56,6 @@ export async function GET() {
     // Get checklist items (TODO/IN_PROGRESS) from stories authored or assigned to user
     const checklistItems = await prisma.checklistItem.findMany({
       where: {
-        status: { in: ["TODO", "IN_PROGRESS"] },
         checklist: {
           story: {
             OR: [
@@ -74,7 +73,7 @@ export async function GET() {
               select: {
                 id: true,
                 title: true,
-                project: { select: { name: true } },
+                project: { select: { id: true, name: true } },
               },
             },
           },
@@ -88,9 +87,11 @@ export async function GET() {
       id: item.id,
       title: item.title,
       status: item.status,
+      checklistId: item.checklistId,
       checklist: item.checklist.title,
       story: item.checklist.story.title,
       storyId: item.checklist.story.id,
+      projectId: item.checklist.story.project.id,
       project: item.checklist.story.project.name,
     }));
 
