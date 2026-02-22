@@ -18,7 +18,7 @@ export async function GET() {
       where: {
         OR: [
           { authorId: user.id },
-          // Add assignee field to schema later for proper assignment
+          { assigneeId: user.id },
         ],
         status: {
           in: ["TODO", "IN_PROGRESS"],
