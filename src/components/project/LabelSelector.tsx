@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Plus, Tag } from "lucide-react";
+import { Check, Plus, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,6 +21,7 @@ interface LabelSelectorProps {
   projectLabels: Label[];
   onToggle: (label: Label) => void;
   onCreateAndToggle: (name: string, color: string) => Promise<void>;
+  onDelete?: (labelId: string) => Promise<void>;
 }
 
 export function LabelSelector({
@@ -29,6 +30,7 @@ export function LabelSelector({
   projectLabels,
   onToggle,
   onCreateAndToggle,
+  onDelete,
 }: LabelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -92,19 +94,35 @@ export function LabelSelector({
           {filtered.map((label) => {
             const selected = selectedLabels.some((l) => l.id === label.id);
             return (
-              <button
-                type="button"
+              <div
                 key={label.id}
-                onClick={() => onToggle(label)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-left"
+                className="group flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm"
               >
-                <span
-                  className="h-3 w-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: label.color }}
-                />
-                <span className="flex-1 truncate">{label.name}</span>
-                {selected && <Check className="h-3 w-3 flex-shrink-0" />}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onToggle(label)}
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                >
+                  <span
+                    className="h-3 w-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  <span className="flex-1 truncate">{label.name}</span>
+                  {selected && <Check className="h-3 w-3 flex-shrink-0" />}
+                </button>
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(label.id);
+                    }}
+                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

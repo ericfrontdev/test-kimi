@@ -177,6 +177,12 @@ export function CreateStoryDialog({
     }
   }
 
+  async function handleDeleteLabel(labelId: string) {
+    await fetch(`/api/projects/${projectId}/labels/${labelId}`, { method: "DELETE" });
+    mutateLabels((prev) => prev?.filter((l) => l.id !== labelId), false);
+    setSelectedLabels((prev) => prev.filter((l) => l.id !== labelId));
+  }
+
   const currentStatus = statusOptions.find((s) => s.id === status);
   const currentType = typeOptions.find((t) => t.id === type);
   const currentPriority = priorityOptions.find((p) => p.id === priority);
@@ -441,6 +447,7 @@ export function CreateStoryDialog({
                   projectLabels={projectLabels}
                   onToggle={handleToggleLabel}
                   onCreateAndToggle={handleCreateAndToggleLabel}
+                  onDelete={handleDeleteLabel}
                 />
               </div>
             </div>

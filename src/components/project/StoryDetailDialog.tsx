@@ -227,6 +227,14 @@ export function StoryDetailDialog({
     }
   }
 
+  async function handleDeleteLabel(labelId: string) {
+    await fetch(`/api/projects/${projectId}/labels/${labelId}`, { method: "DELETE" });
+    mutateProjectLabels((prev) => prev?.filter((l) => l.id !== labelId), false);
+    if (storyDetail) {
+      mutateStory({ ...storyDetail, labels: storyDetail.labels?.filter((l) => l.id !== labelId) }, false);
+    }
+  }
+
   async function handleDueDateChange(date: Date | null) {
     if (!storyDetail) return;
 
@@ -883,6 +891,7 @@ export function StoryDetailDialog({
                     projectLabels={projectLabels}
                     onToggle={handleToggleLabel}
                     onCreateAndToggle={handleCreateAndToggleLabel}
+                    onDelete={handleDeleteLabel}
                   />
                 </div>
 
