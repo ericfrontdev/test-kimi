@@ -42,7 +42,7 @@ function truncate(text: string, max = 80): string {
 }
 
 export function ActivityFeed() {
-  const { activities, comments, mentions, isLoading, fetchMyWork } = useMyWorkStore();
+  const { comments, mentions, isLoading, fetchMyWork } = useMyWorkStore();
   const [tab, setTab] = useState<Tab>("all");
   const [initial, setInitial] = useState<string>("?");
 
@@ -60,14 +60,20 @@ export function ActivityFeed() {
     });
   }, [fetchMyWork]);
 
-  // Build unified feed for "Toute l'activité"
+  // Build unified feed for "Toute l'activité" — only user-specific events
   const allItems = [
-    ...activities.map((a) => ({ ...a, type: "activity" as const })),
     ...comments.map((c) => ({
       id: c.id,
-      content: `Vous avez commenté sur « ${c.story} » — ${truncate(c.content)}`,
+      content: `Vous avez commenté : « ${truncate(c.content)} »`,
+      sub: `${c.project} · ${c.story}`,
       time: c.time,
-      type: "comment" as const,
+    })),
+    ...mentions.map((m) => ({
+      id: `m-${m.id}`,
+      content: m.message,
+      sub: m.title,
+      time: m.time,
+      dimmed: m.read,
     })),
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
@@ -111,7 +117,7 @@ export function ActivityFeed() {
     // "all"
     if (allItems.length === 0) return <EmptyState label="Aucune activité récente" />;
 
-    const groups = groupByDate(allItems.map((a) => ({ id: a.id, content: a.content, time: a.time })));
+    const groups = groupByDate(allItems);
     return renderGroups(groups, initial, false);
   }
 
