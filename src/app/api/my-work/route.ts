@@ -122,24 +122,6 @@ export async function GET() {
       dueDate: story.dueDate!.toISOString(),
     }));
 
-    // Get recent activity (recently updated stories authored or assigned to user)
-    const recentStories = await prisma.story.findMany({
-      where: {
-        OR: [{ authorId: user.id }, { assigneeId: user.id }],
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 10,
-      include: {
-        project: { select: { name: true } },
-      },
-    });
-
-    const activities = recentStories.map((story) => ({
-      id: story.id,
-      content: `Vous avez modifié « ${story.title} » dans ${story.project.name}`,
-      time: story.updatedAt.toISOString(),
-    }));
-
     // Get recent comments by the user
     const userComments = await prisma.comment.findMany({
       where: { authorId: user.id },
@@ -204,7 +186,6 @@ export async function GET() {
       stories: formattedStories,
       checklistItems: formattedChecklistItems,
       upcomingStories: formattedUpcomingStories,
-      activities,
       comments,
       mentions,
       stats: {
