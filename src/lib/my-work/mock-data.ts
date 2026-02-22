@@ -1,9 +1,3 @@
-export const mockUser = {
-  name: "Eric",
-  email: "eric@example.com",
-  avatar: "E",
-};
-
 export const mockStories = [
   {
     id: "1",
