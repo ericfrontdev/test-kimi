@@ -79,7 +79,7 @@ export function LabelSelector({
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
         <Input
-          placeholder="Rechercher ou créer..."
+          placeholder="Rechercher..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 text-sm mb-2"
@@ -93,6 +93,7 @@ export function LabelSelector({
             const selected = selectedLabels.some((l) => l.id === label.id);
             return (
               <button
+                type="button"
                 key={label.id}
                 onClick={() => onToggle(label)}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-left"
@@ -126,6 +127,7 @@ export function LabelSelector({
             <div className="flex flex-wrap gap-1.5">
               {PRESET_COLORS.map((c) => (
                 <button
+                  type="button"
                   key={c}
                   onClick={() => setNewColor(c)}
                   className={cn(
@@ -137,16 +139,17 @@ export function LabelSelector({
               ))}
             </div>
             <div className="flex gap-2">
-              <Button size="sm" className="h-7 text-xs flex-1" onClick={handleCreate} disabled={isSubmitting || !newName.trim()}>
+              <Button type="button" size="sm" className="h-7 text-xs flex-1" onClick={handleCreate} disabled={isSubmitting || !newName.trim()}>
                 {isSubmitting ? "Création..." : "Créer"}
               </Button>
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsCreating(false)}>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsCreating(false)}>
                 Annuler
               </Button>
             </div>
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => setIsCreating(true)}
             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-muted-foreground"
           >
