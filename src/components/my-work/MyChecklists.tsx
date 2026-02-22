@@ -7,10 +7,10 @@ export function MyChecklists() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">My Checklists</CardTitle>
+        <CardTitle className="text-base font-semibold">Mes checklists</CardTitle>
         <select className="rounded-md border px-2 py-1 text-sm">
-          <option>In Progress</option>
-          <option>All</option>
+          <option>En cours</option>
+          <option>Toutes</option>
         </select>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8 text-center">

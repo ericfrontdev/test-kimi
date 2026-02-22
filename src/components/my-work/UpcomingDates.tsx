@@ -8,11 +8,11 @@ export function UpcomingDates() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">
-          Upcoming Due Dates
+          Échéances à venir
         </CardTitle>
         <select className="rounded-md border px-2 py-1 text-sm">
-          <option>Everything</option>
-          <option>This Week</option>
+          <option>Tout</option>
+          <option>Cette semaine</option>
         </select>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8 text-center">

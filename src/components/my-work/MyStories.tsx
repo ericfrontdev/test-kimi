@@ -21,7 +21,7 @@ export function MyStories() {
         </CardHeader>
         <CardContent>
           <div className="py-8 text-center text-sm text-muted-foreground">
-            Loading...
+            Chargement...
           </div>
         </CardContent>
       </Card>
@@ -34,7 +34,7 @@ export function MyStories() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-semibold">Mes Stories</CardTitle>
           <select className="rounded-md border px-2 py-1 text-sm">
-            <option>To-Do and In Progress</option>
+            <option>À faire et en cours</option>
           </select>
         </CardHeader>
         <CardContent>
@@ -53,10 +53,10 @@ export function MyStories() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">My Stories</CardTitle>
+        <CardTitle className="text-base font-semibold">Mes stories</CardTitle>
         <select className="rounded-md border px-2 py-1 text-sm">
-          <option>To-Do and In Progress</option>
-          <option>All Stories</option>
+          <option>À faire et en cours</option>
+          <option>Toutes les stories</option>
         </select>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -81,7 +81,7 @@ export function MyStories() {
                     {story.completedSubtasks}/
                   </span>
                 )}
-                <span>Sub-task {story.subtasks}</span>
+                <span>Sous-tâche {story.subtasks}</span>
               </div>
               <div className="flex gap-2">
                 <Badge variant="secondary" className="text-xs font-normal">

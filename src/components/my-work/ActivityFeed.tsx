@@ -27,12 +27,12 @@ export function ActivityFeed() {
       <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base font-semibold">
-            Mon Activité
+            Mon fil d&apos;activité
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="py-8 text-center text-sm text-muted-foreground">
-            Loading...
+            Chargement...
           </div>
         </CardContent>
       </Card>
@@ -43,7 +43,7 @@ export function ActivityFeed() {
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">
-          My Activity Feed
+          Mon fil d&apos;activité
         </CardTitle>
         <button className="text-muted-foreground hover:text-foreground">
           ⚙️
@@ -52,10 +52,10 @@ export function ActivityFeed() {
       <CardContent>
         <div className="mb-4 flex gap-4 border-b pb-2 text-sm">
           <button className="border-b-2 border-primary pb-2 font-medium">
-            All Activity
+            Toute l&apos;activité
           </button>
           <button className="pb-2 text-muted-foreground hover:text-foreground">
-            Comments
+            Commentaires
           </button>
           <button className="pb-2 text-muted-foreground hover:text-foreground">
             Mentions
