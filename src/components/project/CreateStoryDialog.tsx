@@ -287,13 +287,13 @@ export function CreateStoryDialog({
                   </h3>
                   <div className="space-y-1">
                     {localChecklistItems.map((item) => (
-                      <div key={item.id} className="group flex items-center gap-2 py-1 px-1 rounded hover:bg-muted/40">
+                      <div key={item.id} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted/40">
                         <div className="h-3.5 w-3.5 border rounded flex-shrink-0" />
                         <span className="flex-1 text-sm">{item.title}</span>
                         <button
                           type="button"
                           onClick={() => setLocalChecklistItems((prev) => prev.filter((i) => i.id !== item.id))}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          className="text-muted-foreground hover:text-destructive"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>

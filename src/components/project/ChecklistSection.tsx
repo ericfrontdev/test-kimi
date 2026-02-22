@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { GripVertical, Pencil, Trash2, X } from "lucide-react";
+import { Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -174,8 +174,7 @@ export function ChecklistSection({
       {/* Items */}
       <div className="space-y-1">
         {checklist.items.map((item) => (
-          <div key={item.id} className="group flex items-center gap-2 py-1 rounded-md hover:bg-muted/40 px-1">
-            <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+          <div key={item.id} className="flex items-center gap-2 py-1 rounded-md hover:bg-muted/40 px-1">
             <Checkbox
               checked={item.checked}
               onCheckedChange={() => handleToggleItem(item)}
@@ -207,7 +206,7 @@ export function ChecklistSection({
             <button
               type="button"
               onClick={() => handleDeleteItem(item.id)}
-              className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+              className="flex-shrink-0 text-muted-foreground hover:text-destructive"
             >
               <X className="h-3.5 w-3.5" />
             </button>
