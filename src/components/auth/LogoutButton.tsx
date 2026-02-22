@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useMyWorkStore } from "@/stores/my-work";
 
 export function LogoutButton() {
   const router = useRouter();
   const supabase = createClient();
+  const resetCache = useMyWorkStore((s) => s.resetCache);
 
   async function handleLogout() {
+    resetCache();
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();

@@ -75,6 +75,7 @@ interface MyWorkState {
 
   fetchMyWork: (force?: boolean) => Promise<void>;
   updateChecklistItemStatus: (itemId: string, status: string) => void;
+  resetCache: () => void;
 }
 
 export const useMyWorkStore = create<MyWorkState>((set, get) => ({
@@ -130,4 +131,6 @@ export const useMyWorkStore = create<MyWorkState>((set, get) => ({
       ),
     }));
   },
+
+  resetCache: () => set({ lastFetched: null }),
 }));
