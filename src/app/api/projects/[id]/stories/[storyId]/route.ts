@@ -72,6 +72,12 @@ export async function GET(
           select: { name: true, email: true },
         },
         labels: true,
+        checklists: {
+          orderBy: { position: "asc" },
+          include: {
+            items: { orderBy: { position: "asc" } },
+          },
+        },
       },
     });
 

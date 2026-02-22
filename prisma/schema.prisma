@@ -149,6 +149,7 @@ model Story {
   attachments Attachment[]
   comments    Comment[]
   labels      Label[]
+  checklists  Checklist[]
   
   @@unique([projectId, storyNumber])
   @@map("stories")
@@ -186,6 +187,33 @@ model Label {
 
   @@unique([projectId, name])
   @@map("labels")
+}
+
+model Checklist {
+  id        String          @id @default(uuid())
+  title     String          @default("Checklist")
+  position  Int             @default(0)
+  createdAt DateTime        @default(now())
+
+  storyId   String
+  story     Story           @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  items     ChecklistItem[]
+
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id          String    @id @default(uuid())
+  title       String
+  checked     Boolean   @default(false)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_items")
 }
 
 model Attachment {

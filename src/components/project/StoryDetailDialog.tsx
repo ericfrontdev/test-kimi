@@ -3,7 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
-import { X, Edit3, Copy, Link2, CheckSquare, User, Flag, Calendar, Tag, GitBranch, MessageSquare, Clock, MoreHorizontal, Check, Circle, Loader2, FileText, FolderOpen, Archive, ArchiveRestore, CopyCheck } from "lucide-react";
+import { X, Edit3, Copy, Link2, CheckSquare, User, Flag, Calendar, Tag, GitBranch, MessageSquare, Clock, MoreHorizontal, Check, Circle, Loader2, FileText, FolderOpen, Archive, ArchiveRestore, CopyCheck, ListChecks, Paperclip } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,8 @@ import { cn, getInitials } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LabelSelector } from "@/components/project/LabelSelector";
-import type { Label } from "@/components/project/kanban/types";
+import { ChecklistSection } from "@/components/project/ChecklistSection";
+import type { Label, Checklist } from "@/components/project/kanban/types";
 
 interface TaskAssignee {
   id: string;
@@ -77,6 +78,7 @@ interface StoryDetail {
   } | null;
   dueDate?: string | null;
   labels?: Label[];
+  checklists?: Checklist[];
 }
 
 interface StoryDetailDialogProps {
@@ -225,6 +227,30 @@ export function StoryDetailDialog({
       mutateProjectLabels((prev) => [...(prev ?? []), newLabel], false);
       await handleToggleLabel(newLabel);
     }
+  }
+
+  async function handleAddChecklist() {
+    if (!storyDetail) return;
+    const res = await fetch(`/api/projects/${projectId}/stories/${storyDetail.id}/checklists`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) {
+      const newChecklist: Checklist = await res.json();
+      mutateStory({ ...storyDetail, checklists: [...(storyDetail.checklists ?? []), newChecklist] }, false);
+    }
+  }
+
+  function handleUpdateChecklists(updater: (prev: Checklist[]) => Checklist[]) {
+    if (!storyDetail) return;
+    mutateStory({ ...storyDetail, checklists: updater(storyDetail.checklists ?? []) }, false);
+  }
+
+  async function handleDeleteChecklist(checklistId: string) {
+    if (!storyDetail) return;
+    mutateStory({ ...storyDetail, checklists: (storyDetail.checklists ?? []).filter((c) => c.id !== checklistId) }, false);
+    await fetch(`/api/projects/${projectId}/stories/${storyDetail.id}/checklists/${checklistId}`, { method: "DELETE" });
   }
 
   async function handleDeleteLabel(labelId: string) {
@@ -455,6 +481,25 @@ export function StoryDetailDialog({
                 )}
               </div>
 
+              {/* Checklists */}
+              {(storyDetail?.checklists ?? []).length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-6">
+                    {(storyDetail?.checklists ?? []).map((checklist) => (
+                      <ChecklistSection
+                        key={checklist.id}
+                        checklist={checklist}
+                        projectId={projectId}
+                        storyId={storyDetail!.id}
+                        onUpdate={handleUpdateChecklists}
+                        onDelete={handleDeleteChecklist}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
               <Separator />
 
               {/* Sub-tasks */}
@@ -617,6 +662,37 @@ export function StoryDetailDialog({
                     + Sous-tâche
                   </Button>
                 )}
+              </div>
+
+              <Separator />
+
+              {/* Add to Story */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add to Story</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "text-xs",
+                      (storyDetail?.checklists ?? []).length > 0 && "border-primary text-primary"
+                    )}
+                    onClick={handleAddChecklist}
+                    disabled={!storyDetail}
+                  >
+                    <ListChecks className="h-3 w-3 mr-1" />
+                    Checklist
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
+                    <Link2 className="h-3 w-3 mr-1" />
+                    External Links
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
+                    <Paperclip className="h-3 w-3 mr-1" />
+                    Attach Files
+                  </Button>
+                </div>
               </div>
 
               <Separator />
