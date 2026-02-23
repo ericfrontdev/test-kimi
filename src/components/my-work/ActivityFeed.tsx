@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, AtSign, Activity } from "lucide-react";
 import { useMyWorkStore } from "@/stores/my-work";
-import { createClient } from "@/lib/supabase/client";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -45,21 +45,19 @@ function truncate(text: string, max = 80): string {
 export function ActivityFeed() {
   const { comments, mentions, isLoading, fetchMyWork } = useMyWorkStore();
   const [tab, setTab] = useState<Tab>("all");
-  const [initial, setInitial] = useState<string>("?");
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     fetchMyWork(true);
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const fullName =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email ||
-        "";
-      setInitial(fullName.charAt(0).toUpperCase());
-    });
+    fetch("/api/users/me")
+      .then((r) => r.json())
+      .then((data) => {
+        setCurrentUserName(data.name ?? data.email ?? null);
+        setCurrentUserAvatarUrl(data.avatarUrl ?? null);
+      })
+      .catch(() => {});
   }, [fetchMyWork]);
 
   function handleMentionClick(item: FeedItem) {
@@ -114,7 +112,7 @@ export function ActivityFeed() {
 
       // Group by date
       const groups = groupByDate(comments.map((c) => ({ id: c.id, content: c.content, time: c.time, sub: `${c.project} · ${c.story}` })));
-      return renderGroups(groups, initial, true);
+      return renderGroups(groups, currentUserName, currentUserAvatarUrl, true);
     }
 
     if (tab === "mentions") {
@@ -129,14 +127,14 @@ export function ActivityFeed() {
         projectId: m.projectId ?? undefined,
         storyId: m.storyId ?? undefined,
       })));
-      return renderGroups(groups, initial, false, handleMentionClick);
+      return renderGroups(groups, currentUserName, currentUserAvatarUrl, false, handleMentionClick);
     }
 
     // "all"
     if (allItems.length === 0) return <EmptyState label="Aucune activité récente" />;
 
     const groups = groupByDate(allItems);
-    return renderGroups(groups, initial, false, handleMentionClick);
+    return renderGroups(groups, currentUserName, currentUserAvatarUrl, false, handleMentionClick);
   }
 
   return (
@@ -192,7 +190,8 @@ function groupByDate(items: FeedItem[]): { label: string; items: FeedItem[] }[] 
 
 function renderGroups(
   groups: { label: string; items: FeedItem[] }[],
-  initial: string,
+  name: string | null,
+  avatarUrl: string | null,
   showQuote: boolean,
   onItemClick?: (item: FeedItem) => void
 ) {
@@ -214,9 +213,7 @@ function renderGroups(
                 )}
                 onClick={isClickable ? () => onItemClick!(item) : undefined}
               >
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
-                  {initial}
-                </div>
+                <UserAvatar name={name} avatarUrl={avatarUrl} size="sm" />
                 <div className="flex-1 space-y-0.5">
                   <p className="text-sm leading-snug">
                     {showQuote ? `« ${item.content} »` : item.content}
