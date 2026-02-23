@@ -2,6 +2,7 @@
 
 import useSWR, { mutate } from "swr";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ interface Notification {
   message: string;
   read: boolean;
   createdAt: string;
+  data: { projectId?: string; storyId?: string } | null;
 }
 
 interface NotificationsResponse {
@@ -32,6 +34,7 @@ const NOTIFICATIONS_KEY = "/api/notifications?limit=10";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const { data, mutate: mutateNotifications } = useSWR<NotificationsResponse>(
     NOTIFICATIONS_KEY,
@@ -127,7 +130,14 @@ export function NotificationBell() {
                   "flex flex-col items-start gap-1 p-3 cursor-pointer",
                   !notification.read && "bg-muted/50"
                 )}
-                onClick={() => !notification.read && markAsRead(notification.id)}
+                onClick={() => {
+                  if (!notification.read) markAsRead(notification.id);
+                  const { projectId, storyId } = notification.data ?? {};
+                  if (projectId && storyId) {
+                    setOpen(false);
+                    router.push(`/project/${projectId}?tab=backlog&story=${storyId}`);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between w-full gap-2">
                   <span className={cn("font-medium text-sm", !notification.read && "text-foreground")}>
