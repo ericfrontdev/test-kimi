@@ -156,12 +156,7 @@ export async function POST(
             title: "Mention dans un commentaire",
             message: `${authorName} vous a mentionné dans un commentaire sur la sous-tâche ${subtaskId}`,
             userId: mentionedUserId,
-            data: JSON.stringify({
-              projectId,
-              storyId,
-              taskId,
-              commentId: comment.id,
-            }),
+            data: { projectId, storyId, commentId: comment.id },
           })),
       });
     }
