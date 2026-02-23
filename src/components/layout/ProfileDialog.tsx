@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Camera, ExternalLink } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,13 +33,13 @@ interface ProfileData {
   projects: Project[];
 }
 
-interface ProfileSheetProps {
+interface ProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNameUpdated?: (name: string) => void;
 }
 
-export function ProfileSheet({ open, onOpenChange, onNameUpdated }: ProfileSheetProps) {
+export function ProfileDialog({ open, onOpenChange, onNameUpdated }: ProfileDialogProps) {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,18 +161,18 @@ export function ProfileSheet({ open, onOpenChange, onNameUpdated }: ProfileSheet
   const initials = getInitials(displayName);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[440px] sm:max-w-[440px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Mon profil</SheetTitle>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Mon profil</DialogTitle>
+        </DialogHeader>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : profile ? (
-          <div className="mt-6 space-y-6">
+          <div className="space-y-6">
             {/* Avatar + identité */}
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -315,7 +315,7 @@ export function ProfileSheet({ open, onOpenChange, onNameUpdated }: ProfileSheet
             </div>
           </div>
         ) : null}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

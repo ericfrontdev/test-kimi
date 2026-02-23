@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { InviteUserDialog } from "./InviteUserDialog";
-import { ProfileSheet } from "./ProfileSheet";
+import { ProfileDialog } from "./ProfileDialog";
 import { useTheme } from "next-themes";
 import { getInitials } from "@/lib/utils";
 
@@ -134,7 +134,7 @@ export function UserMenu() {
       </DropdownMenu>
 
       <InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} />
-      <ProfileSheet
+      <ProfileDialog
         open={profileOpen}
         onOpenChange={setProfileOpen}
         onNameUpdated={(newName) => {
