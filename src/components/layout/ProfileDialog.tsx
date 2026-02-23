@@ -210,7 +210,7 @@ export function ProfileDialog({ open, onOpenChange, onNameUpdated }: ProfileDial
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar}
-                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border flex items-center justify-center hover:bg-muted transition-colors"
+                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border flex items-center justify-center hover:bg-muted transition-colors cursor-pointer"
                   title="Changer la photo"
                 >
                   {isUploadingAvatar ? (
