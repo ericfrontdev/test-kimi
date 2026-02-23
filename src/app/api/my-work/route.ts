@@ -158,13 +158,18 @@ export async function GET() {
       take: 10,
     });
 
-    const mentions = mentionNotifications.map((n) => ({
-      id: n.id,
-      title: n.title,
-      message: n.message,
-      time: n.createdAt.toISOString(),
-      read: n.read,
-    }));
+    const mentions = mentionNotifications.map((n) => {
+      const data = n.data as Record<string, string> | null;
+      return {
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        time: n.createdAt.toISOString(),
+        read: n.read,
+        projectId: data?.projectId ?? null,
+        storyId: data?.storyId ?? null,
+      };
+    });
 
     // Get stats
     const totalProjects = await prisma.project.count({

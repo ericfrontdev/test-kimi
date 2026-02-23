@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MessageSquare, AtSign, Activity } from "lucide-react";
 import { useMyWorkStore } from "@/stores/my-work";
 import { createClient } from "@/lib/supabase/client";
@@ -45,6 +46,7 @@ export function ActivityFeed() {
   const { comments, mentions, isLoading, fetchMyWork } = useMyWorkStore();
   const [tab, setTab] = useState<Tab>("all");
   const [initial, setInitial] = useState<string>("?");
+  const router = useRouter();
 
   useEffect(() => {
     fetchMyWork();
@@ -60,6 +62,12 @@ export function ActivityFeed() {
     });
   }, [fetchMyWork]);
 
+  function handleMentionClick(item: FeedItem) {
+    if (item.projectId && item.storyId) {
+      router.push(`/project/${item.projectId}?tab=backlog&story=${item.storyId}`);
+    }
+  }
+
   // Build unified feed for "Toute l'activité" — only user-specific events
   const allItems = [
     ...comments.map((c) => ({
@@ -74,6 +82,8 @@ export function ActivityFeed() {
       sub: m.title,
       time: m.time,
       dimmed: m.read,
+      projectId: m.projectId ?? undefined,
+      storyId: m.storyId ?? undefined,
     })),
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
@@ -110,15 +120,23 @@ export function ActivityFeed() {
     if (tab === "mentions") {
       if (mentions.length === 0) return <EmptyState label="Vous n'avez pas encore été mentionné" />;
 
-      const groups = groupByDate(mentions.map((m) => ({ id: m.id, content: m.message, time: m.time, sub: m.title, dimmed: m.read })));
-      return renderGroups(groups, initial, false);
+      const groups = groupByDate(mentions.map((m) => ({
+        id: m.id,
+        content: m.message,
+        time: m.time,
+        sub: m.title,
+        dimmed: m.read,
+        projectId: m.projectId ?? undefined,
+        storyId: m.storyId ?? undefined,
+      })));
+      return renderGroups(groups, initial, false, handleMentionClick);
     }
 
     // "all"
     if (allItems.length === 0) return <EmptyState label="Aucune activité récente" />;
 
     const groups = groupByDate(allItems);
-    return renderGroups(groups, initial, false);
+    return renderGroups(groups, initial, false, handleMentionClick);
   }
 
   return (
@@ -160,7 +178,7 @@ export function ActivityFeed() {
   );
 }
 
-type FeedItem = { id: string; content: string; time: string; sub?: string; dimmed?: boolean };
+type FeedItem = { id: string; content: string; time: string; sub?: string; dimmed?: boolean; projectId?: string; storyId?: string };
 
 function groupByDate(items: FeedItem[]): { label: string; items: FeedItem[] }[] {
   const map = new Map<string, FeedItem[]>();
@@ -175,7 +193,8 @@ function groupByDate(items: FeedItem[]): { label: string; items: FeedItem[] }[] 
 function renderGroups(
   groups: { label: string; items: FeedItem[] }[],
   initial: string,
-  showQuote: boolean
+  showQuote: boolean,
+  onItemClick?: (item: FeedItem) => void
 ) {
   return (
     <div className="space-y-4">
@@ -183,8 +202,18 @@ function renderGroups(
         <div key={label}>
           <p className="mb-2 text-xs font-medium text-muted-foreground">{label}</p>
           <div className="space-y-3">
-            {items.map((item) => (
-              <div key={item.id} className={cn("flex gap-3", item.dimmed && "opacity-60")}>
+            {items.map((item) => {
+              const isClickable = !!onItemClick && !!item.projectId && !!item.storyId;
+              return (
+              <div
+                key={item.id}
+                className={cn(
+                  "flex gap-3",
+                  item.dimmed && "opacity-60",
+                  isClickable && "cursor-pointer rounded-md px-1 -mx-1 hover:bg-accent/50 transition-colors"
+                )}
+                onClick={isClickable ? () => onItemClick!(item) : undefined}
+              >
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
                   {initial}
                 </div>
@@ -198,7 +227,8 @@ function renderGroups(
                   <p className="text-xs text-muted-foreground">{formatTime(item.time)}</p>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
