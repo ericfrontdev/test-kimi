@@ -64,7 +64,7 @@ export function CreateProjectDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-5 w-5">
+        <Button variant="ghost" size="icon" className="h-5 w-5" aria-label="Nouveau projet">
           <Plus size={14} />
         </Button>
       </DialogTrigger>

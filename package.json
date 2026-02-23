@@ -10,6 +10,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "dev:test": "dotenv -e .env.test.local -- next dev --port 3001",
+    "test:e2e": "dotenv -e .env.test.local -- playwright test",
+    "test:e2e:ui": "dotenv -e .env.test.local -- playwright test --ui",
+    "test:e2e:headed": "dotenv -e .env.test.local -- playwright test --headed",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -43,6 +47,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
@@ -50,6 +55,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.0.18",
     "dotenv": "^17.3.1",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "prisma": "^7.4.0",
