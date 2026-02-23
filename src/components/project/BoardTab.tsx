@@ -291,7 +291,7 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
     if (wasBlocked) {
       setBlockWarning(true);
-      setTimeout(() => setBlockWarning(false), 4000);
+      setTimeout(() => setBlockWarning(false), 6000);
       return;
     }
 
