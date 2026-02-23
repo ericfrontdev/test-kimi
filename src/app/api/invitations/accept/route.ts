@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { ensureUserExists } from "@/lib/ensure-user-exists";
 
 // POST /api/invitations/accept - Accept invitation after registration
 export async function POST(request: NextRequest) {
@@ -55,6 +56,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Ensure user exists in public.users with the correct Supabase UUID
+    await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
     // Add user to all projects
     const addedProjects = [];
