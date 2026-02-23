@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import type { Task, ProjectUser, TaskStatus } from "./types";
+import { useProjectStore } from "@/stores/project";
+import type { Task, TaskStatus } from "./types";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { taskStatuses } from "./types";
 
@@ -33,12 +34,8 @@ interface SubtaskDetailDialogProps {
   storyId: string;
   storyType: string;
   storyNumber: number;
-  projectId: string;
-  projectUsers: ProjectUser[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 function formatDate(dateString: string) {
@@ -55,13 +52,12 @@ export function SubtaskDetailDialog({
   storyId,
   storyType,
   storyNumber,
-  projectId,
-  projectUsers,
   open,
   onOpenChange,
-  onAssigneeChange,
-  onStatusChange,
 }: SubtaskDetailDialogProps) {
+  const projectId = useProjectStore((state) => state.projectId) || "";
+  const projectUsers = useProjectStore((state) => state.projectUsers);
+  const updateTaskStatus = useProjectStore((state) => state.updateTaskStatus);
   const [description, setDescription] = useState("");
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
@@ -169,7 +165,7 @@ export function SubtaskDetailDialog({
 
   function handleStatusChange(newStatus: TaskStatus) {
     if (!task) return;
-    onStatusChange?.(storyId, task.id, newStatus);
+    updateTaskStatus(storyId, task.id, newStatus);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
