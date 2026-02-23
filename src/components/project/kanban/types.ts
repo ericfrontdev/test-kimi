@@ -66,15 +66,6 @@ export interface ColumnProps {
   color: string;
   stories: Story[];
   onStoryClick: (story: Story) => void;
-  expandedStories: Set<string>;
-  storyTasks: Record<string, Task[]>;
-  loadingTasks: Set<string>;
-  onToggleSubtasks: (storyId: string) => void;
-  onPriorityChange: (storyId: string, priority: number) => void;
-  onAssigneeChange: (storyId: string, assigneeId: string | null, assignSubtasks: boolean) => void;
-  projectUsers: ProjectUser[];
-  onTaskAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onTaskStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
 export interface ProjectUser {

@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { Task, ProjectUser, TaskStatus } from "./types";
+import { useProjectStore } from "@/stores/project";
+import type { Task, TaskStatus } from "./types";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
@@ -20,41 +21,29 @@ interface SubtaskCardProps {
   storyId: string;
   storyType: string;
   storyNumber: number;
-  projectUsers: ProjectUser[];
-  onAssigneeChange?: (storyId: string, taskId: string, assigneeId: string | null, assignee?: { name: string | null; email: string } | null) => void;
-  onStatusChange?: (storyId: string, taskId: string, status: TaskStatus) => void;
 }
 
-export function SubtaskCard({ 
-  task, 
-  storyId,
-  storyType, 
-  storyNumber,
-  projectUsers,
-  onAssigneeChange,
-  onStatusChange,
-}: SubtaskCardProps) {
+export function SubtaskCard({ task, storyId, storyType, storyNumber }: SubtaskCardProps) {
+  const projectUsers = useProjectStore((state) => state.projectUsers);
+  const updateTaskAssignee = useProjectStore((state) => state.updateTaskAssignee);
+  const updateTaskStatus = useProjectStore((state) => state.updateTaskStatus);
+
   const [isAssignOpen, setIsAssignOpen] = useState(false);
-  
-  // Format: FEATURE-32-1 (story ID + task number)
+
   const subtaskId = `${storyType}-${storyNumber}-${task.taskNumber}`;
 
   function handleStatusChange(newStatus: TaskStatus) {
-    onStatusChange?.(storyId, task.id, newStatus);
+    updateTaskStatus(storyId, task.id, newStatus);
   }
-
-
 
   return (
     <Card className="border bg-card/50 shadow-none hover:bg-card transition-colors py-0 gap-0">
       <CardContent className="p-0 px-3 py-2.5">
-        {/* Top Row: ID (left) - Assign button (right) */}
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-mono text-muted-foreground font-medium leading-none">
             {subtaskId}
           </span>
-          
-          {/* Assign button with dropdown */}
+
           <DropdownMenu open={isAssignOpen} onOpenChange={setIsAssignOpen}>
             <DropdownMenuTrigger asChild>
               <Button
@@ -75,7 +64,7 @@ export function SubtaskCard({
                 className="text-xs cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAssigneeChange?.(storyId, task.id, null);
+                  updateTaskAssignee(storyId, task.id, null, null);
                   setIsAssignOpen(false);
                 }}
               >
@@ -88,8 +77,8 @@ export function SubtaskCard({
                   className="text-xs flex items-center gap-2 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const assignee = { name: user.name, email: user.email };
-                    onAssigneeChange?.(storyId, task.id, user.id, assignee);
+                    const assignee = { name: user.name, email: user.email, avatarUrl: user.avatarUrl ?? null };
+                    updateTaskAssignee(storyId, task.id, user.id, assignee);
                     setIsAssignOpen(false);
                   }}
                 >
@@ -102,7 +91,6 @@ export function SubtaskCard({
           </DropdownMenu>
         </div>
 
-        {/* Middle: Title with status dropdown aligned right */}
         <div className="flex items-start gap-2 mt-2.5">
           <p className={cn(
             "text-xs font-medium leading-snug flex-1",
@@ -110,8 +98,7 @@ export function SubtaskCard({
           )}>
             {task.title}
           </p>
-          
-          {/* Status dropdown */}
+
           <TaskStatusDropdown
             currentStatus={task.status}
             onStatusChange={handleStatusChange}

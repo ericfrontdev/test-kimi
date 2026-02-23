@@ -3,7 +3,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
-import { useKanbanStore } from "@/stores/kanban";
 import { KanbanCard } from "./KanbanCard";
 import type { ColumnProps } from "./types";
 
@@ -13,17 +12,7 @@ export function KanbanColumn({
   color,
   stories,
   onStoryClick,
-  expandedStories,
-  storyTasks,
-  loadingTasks,
-  onToggleSubtasks,
-  onPriorityChange,
-  onAssigneeChange,
-  projectUsers,
-  onTaskAssigneeChange,
-  onTaskStatusChange,
 }: ColumnProps) {
-  const projectId = useKanbanStore((state) => state.currentProjectId);
   const { setNodeRef, isOver } = useDroppable({
     id,
     data: { type: "Column" },
@@ -54,18 +43,9 @@ export function KanbanColumn({
               key={story.id}
               story={story}
               onClick={() => onStoryClick(story)}
-              isExpanded={expandedStories.has(story.id)}
-              tasks={storyTasks[story.id] || []}
-              isLoadingTasks={loadingTasks.has(story.id)}
-              onToggleSubtasks={() => onToggleSubtasks(story.id)}
-              onPriorityChange={(priority) => onPriorityChange(story.id, priority)}
-              onAssigneeChange={(assigneeId, assignSubtasks) => onAssigneeChange(story.id, assigneeId, assignSubtasks)}
-              projectUsers={projectUsers}
-              onTaskAssigneeChange={onTaskAssigneeChange}
-              onTaskStatusChange={onTaskStatusChange}
             />
           ))}
-          
+
           {stories.length === 0 && (
             <div className="rounded-md border-2 border-dashed p-4 text-center">
               <p className="text-xs text-muted-foreground">Aucune story</p>
