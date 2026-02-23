@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { InviteUserDialog } from "./InviteUserDialog";
+import { ProfileSheet } from "./ProfileSheet";
 import { useTheme } from "next-themes";
 import { getInitials } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const themes: { value: Theme; label: string; icon: typeof Monitor }[] = [
 export function UserMenu() {
   const router = useRouter();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [userInitials, setUserInitials] = useState("?");
   const [userName, setUserName] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
@@ -65,7 +67,7 @@ export function UserMenu() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem className="gap-2 cursor-pointer">
+          <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2 cursor-pointer">
             <User size={16} />
             <span>Profil</span>
           </DropdownMenuItem>
@@ -132,6 +134,14 @@ export function UserMenu() {
       </DropdownMenu>
 
       <InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <ProfileSheet
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        onNameUpdated={(newName) => {
+          setUserName(newName);
+          setUserInitials(getInitials(newName));
+        }}
+      />
     </>
   );
 }
