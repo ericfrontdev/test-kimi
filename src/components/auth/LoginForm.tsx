@@ -32,7 +32,7 @@ export function LoginForm() {
       return;
     }
 
-    // Accept pending invitation if a token is present
+    // Accept pending invitation via token if present in URL
     const invite = searchParams.get("invite");
     if (invite) {
       await fetch("/api/invitations/accept", {
@@ -41,6 +41,9 @@ export function LoginForm() {
         body: JSON.stringify({ token: invite }),
       });
     }
+
+    // Always auto-accept any remaining pending invitations by email
+    await fetch("/api/invitations/accept-pending", { method: "POST" });
 
     router.push("/");
     router.refresh();
