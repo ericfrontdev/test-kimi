@@ -164,23 +164,14 @@ export function MentionTextarea({
 
 // Helper function to extract mentions from text
 export function extractMentions(text: string, users: User[]): string[] {
-  const mentionPattern = /@([^\s]+)/g;
-  const matches = text.match(mentionPattern) || [];
-  
   const mentionedUserIds: string[] = [];
-  
-  for (const match of matches) {
-    const mentionName = match.slice(1); // Remove @
-    const user = users.find(
-      (u) =>
-        u.name === mentionName ||
-        u.email === mentionName ||
-        u.email.split("@")[0] === mentionName
-    );
-    if (user) {
+
+  for (const user of users) {
+    const displayName = user.name || user.email;
+    if (text.includes(`@${displayName}`)) {
       mentionedUserIds.push(user.id);
     }
   }
-  
+
   return [...new Set(mentionedUserIds)]; // Remove duplicates
 }
