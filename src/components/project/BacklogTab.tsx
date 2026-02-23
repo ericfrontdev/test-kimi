@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { MoreHorizontal, Layers, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { EditStoryDialog } from "./EditStoryDialog";
@@ -34,10 +35,37 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
   const updateStoryFields = useProjectStore((state) => state.updateStoryFields);
   const appendStories = useProjectStore((state) => state.appendStories);
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Auto-open story dialog when ?story= param is present (e.g. from mention click)
+  const storyIdFromUrl = searchParams.get("story");
+  const autoOpenedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!storyIdFromUrl || autoOpenedRef.current === storyIdFromUrl) return;
+    const found = stories.find((s) => s.id === storyIdFromUrl);
+    if (found) {
+      autoOpenedRef.current = storyIdFromUrl;
+      setSelectedStory(found);
+      setIsDetailOpen(true);
+    }
+  }, [storyIdFromUrl, stories]);
+
+  function handleDetailOpenChange(open: boolean) {
+    setIsDetailOpen(open);
+    if (!open && storyIdFromUrl) {
+      autoOpenedRef.current = null;
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("story");
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }
 
   async function handleLoadMore() {
     const nonArchivedCount = stories.filter((s) => s.status !== "ARCHIVED").length;
@@ -256,7 +284,7 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
         story={selectedStory}
         projectId={projectId}
         open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
+        onOpenChange={handleDetailOpenChange}
       />
 
       {/* Edit Story Dialog */}

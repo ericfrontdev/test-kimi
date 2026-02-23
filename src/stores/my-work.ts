@@ -27,6 +27,8 @@ export interface ActivityMention {
   message: string;
   time: string;
   read: boolean;
+  projectId: string | null;
+  storyId: string | null;
 }
 
 export interface UpcomingStory {
