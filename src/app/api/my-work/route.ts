@@ -159,7 +159,10 @@ export async function GET() {
     });
 
     const mentions = mentionNotifications.map((n) => {
-      const data = n.data as Record<string, string> | null;
+      const raw = n.data;
+      const data = (typeof raw === "string"
+        ? JSON.parse(raw)
+        : raw) as Record<string, string> | null;
       return {
         id: n.id,
         title: n.title,

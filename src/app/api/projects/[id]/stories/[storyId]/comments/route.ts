@@ -134,7 +134,7 @@ export async function POST(
             title: "Mention dans un commentaire",
             message: `${authorName} vous a mentionné dans un commentaire sur la story ${storyRef} — ${story.title}`,
             userId: mentionedUserId,
-            data: JSON.stringify({ projectId, storyId, commentId: comment.id }),
+            data: { projectId, storyId, commentId: comment.id },
           })),
       });
     }
