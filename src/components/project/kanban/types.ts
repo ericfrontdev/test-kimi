@@ -47,6 +47,7 @@ export interface Story {
     name: string | null;
     email: string;
   } | null;
+  dueDate?: string | null;
   labels?: Label[];
 }
 

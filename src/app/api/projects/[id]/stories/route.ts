@@ -71,6 +71,7 @@ export async function GET(
       completedSubtasks: story.tasks.filter((t) => t.status === "DONE").length,
       assigneeId: story.assigneeId,
       assignee: story.assignee,
+      dueDate: story.dueDate?.toISOString() ?? null,
     }));
 
     return NextResponse.json({ stories, total, hasMore: skip + take < total });

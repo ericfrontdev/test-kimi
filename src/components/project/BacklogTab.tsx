@@ -3,8 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MoreHorizontal, Layers, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { EditStoryDialog } from "./EditStoryDialog";
+import { FilterSortBar, applyFiltersAndSort, DEFAULT_FILTER, DEFAULT_SORT } from "./FilterSortBar";
+import type { FilterState, SortState } from "./FilterSortBar";
+import type { ProjectUser } from "./kanban/types";
 import {
   Table,
   TableBody,
@@ -31,18 +36,25 @@ interface BacklogTabProps {
 export function BacklogTab({ projectId }: BacklogTabProps) {
   const stories = useProjectStore((state) => state.stories);
   const hasMoreStories = useProjectStore((state) => state.hasMoreStories);
+  const isLoadingMore = useProjectStore((state) => state.isLoadingMore);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
   const updateStoryFields = useProjectStore((state) => state.updateStoryFields);
-  const appendStories = useProjectStore((state) => state.appendStories);
+  const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
 
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
+
+  const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
+    `/api/projects/${projectId}/members`,
+    fetcher
+  );
+
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
   // Auto-open story dialog when ?story= param is present (e.g. from mention click)
   const storyIdFromUrl = searchParams.get("story");
   const autoOpenedRef = useRef<string | null>(null);
@@ -67,24 +79,9 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
     }
   }
 
-  async function handleLoadMore() {
-    const nonArchivedCount = stories.filter((s) => s.status !== "ARCHIVED").length;
-    setIsLoadingMore(true);
-    try {
-      const res = await fetch(
-        `/api/projects/${projectId}/stories?skip=${nonArchivedCount}&take=50`
-      );
-      if (res.ok) {
-        const { stories: newStories, hasMore } = await res.json();
-        appendStories(newStories, hasMore);
-      }
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }
-
-  const backlogStories = stories.filter((s) => s.status === "BACKLOG");
-  const boardStories = stories.filter((s) => s.status !== "BACKLOG" && s.status !== "ARCHIVED");
+  const filteredStories = applyFiltersAndSort(stories, filter, sort);
+  const backlogStories = filteredStories.filter((s) => s.status === "BACKLOG");
+  const boardStories = filteredStories.filter((s) => s.status !== "BACKLOG" && s.status !== "ARCHIVED");
 
   function handleView(story: Story) {
     setSelectedStory(story);
@@ -103,6 +100,15 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
 
   return (
     <div className="space-y-8">
+      <FilterSortBar
+        projectUsers={projectUsers}
+        filter={filter}
+        sort={sort}
+        availableStatuses={["BACKLOG", "TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"]}
+        onFilterChange={setFilter}
+        onSortChange={setSort}
+      />
+
       {/* Table Backlog */}
       <div>
         <div className="mb-3 flex items-center justify-between">
@@ -270,7 +276,7 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
         <div className="flex justify-center pt-2">
           <Button
             variant="outline"
-            onClick={handleLoadMore}
+            onClick={loadMoreStories}
             disabled={isLoadingMore}
           >
             {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

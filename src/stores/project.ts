@@ -5,10 +5,12 @@ interface ProjectState {
   projectId: string | null;
   stories: Story[];
   hasMoreStories: boolean;
+  isLoadingMore: boolean;
   setProject: (projectId: string, stories: Story[], hasMoreStories?: boolean) => void;
   addStory: (story: Story) => void;
   removeStory: (storyId: string) => void;
   appendStories: (stories: Story[], hasMore: boolean) => void;
+  loadMoreStories: () => Promise<void>;
   updateStoryStatus: (storyId: string, newStatus: string) => Promise<void>;
   updateStoryPriority: (storyId: string, newPriority: number) => Promise<void>;
   updateStoryAssignee: (
@@ -26,6 +28,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   projectId: null,
   stories: [],
   hasMoreStories: false,
+  isLoadingMore: false,
 
   setProject: (projectId, stories, hasMoreStories = false) =>
     set({ projectId, stories, hasMoreStories }),
@@ -42,6 +45,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const toAdd = newStories.filter((s) => !existingIds.has(s.id));
       return { stories: [...state.stories, ...toAdd], hasMoreStories: hasMore };
     }),
+
+  loadMoreStories: async () => {
+    const { projectId, stories, isLoadingMore, hasMoreStories } = get();
+    if (!projectId || isLoadingMore || !hasMoreStories) return;
+
+    const skip = stories.filter((s) => s.status !== "ARCHIVED").length;
+    set({ isLoadingMore: true });
+    try {
+      const res = await fetch(`/api/projects/${projectId}/stories?skip=${skip}&take=50`);
+      if (res.ok) {
+        const { stories: newStories, hasMore } = await res.json();
+        get().appendStories(newStories, hasMore);
+      }
+    } finally {
+      set({ isLoadingMore: false });
+    }
+  },
 
   updateStoryStatus: async (storyId, newStatus) => {
     const { projectId, stories } = get();

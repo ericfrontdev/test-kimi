@@ -19,7 +19,10 @@ import {
   defaultDropAnimationSideEffects,
   DropAnimation,
 } from "@dnd-kit/core";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FilterSortBar, applyFiltersAndSort, DEFAULT_FILTER, DEFAULT_SORT } from "./FilterSortBar";
+import type { FilterState, SortState } from "./FilterSortBar";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { KanbanColumn } from "./kanban/KanbanColumn";
 import { StoryCardOverlay } from "./kanban/StoryCardOverlay";
@@ -41,6 +44,9 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   // Store reads
   const storeStories = useProjectStore((state) => state.stories);
+  const hasMoreStories = useProjectStore((state) => state.hasMoreStories);
+  const isLoadingMore = useProjectStore((state) => state.isLoadingMore);
+  const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
   const updateStoryPriority = useProjectStore((state) => state.updateStoryPriority);
   const updateStoryAssignee = useProjectStore((state) => state.updateStoryAssignee);
@@ -53,8 +59,13 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   // dragStories: null when not dragging (falls back to storeStories),
   // snapshot of store at drag-start during active drag
+  const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
+
   const [dragStories, setDragStories] = useState<Story[] | null>(null);
-  const localStories = dragStories ?? storeStories;
+  // Apply filters/sort on the store stories (not during drag — use snapshot as-is)
+  const filteredStoreStories = applyFiltersAndSort(storeStories, filter, sort);
+  const localStories = dragStories ?? filteredStoreStories;
 
   // Block moving to IN_REVIEW / DONE when subtasks are incomplete
   const blockedRef = useRef(false);
@@ -237,9 +248,9 @@ export function BoardTab({ projectId }: BoardTabProps) {
   }
 
   function handleDragStart(event: DragStartEvent) {
-    // Snapshot the current store state so drag updates are isolated
+    // Snapshot the filtered stories so drag updates are isolated
     blockedRef.current = false;
-    setDragStories(storeStories);
+    setDragStories(filteredStoreStories);
     setActiveId(event.active.id as string);
   }
 
@@ -317,6 +328,17 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   return (
     <>
+      <div className="mb-3">
+        <FilterSortBar
+          projectUsers={projectUsers}
+          filter={filter}
+          sort={sort}
+          availableStatuses={["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"]}
+          onFilterChange={setFilter}
+          onSortChange={setSort}
+        />
+      </div>
+
       {blockWarning && (
         <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
           <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -356,6 +378,19 @@ export function BoardTab({ projectId }: BoardTabProps) {
           {activeStory ? <StoryCardOverlay story={activeStory} /> : null}
         </DragOverlay>
       </DndContext>
+
+      {hasMoreStories && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            onClick={loadMoreStories}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Charger plus de stories
+          </Button>
+        </div>
+      )}
 
       <StoryDetailDialog
         story={selectedStory}
