@@ -132,10 +132,11 @@ export function NotificationBell() {
                 )}
                 onClick={() => {
                   if (!notification.read) markAsRead(notification.id);
-                  const { projectId, storyId } = notification.data ?? {};
-                  if (projectId && storyId) {
+                  const raw = notification.data;
+                  const d = (typeof raw === "string" ? JSON.parse(raw) : raw) as { projectId?: string; storyId?: string } | null;
+                  if (d?.projectId && d?.storyId) {
                     setOpen(false);
-                    router.push(`/project/${projectId}?tab=backlog&story=${storyId}`);
+                    router.push(`/project/${d.projectId}?tab=backlog&story=${d.storyId}`);
                   }
                 }}
               >
