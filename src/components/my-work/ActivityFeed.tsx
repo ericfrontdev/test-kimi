@@ -49,7 +49,7 @@ export function ActivityFeed() {
   const router = useRouter();
 
   useEffect(() => {
-    fetchMyWork();
+    fetchMyWork(true);
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
