@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,7 +38,9 @@ export function RegisterForm() {
       return;
     }
 
-    router.push("/login?registered=true");
+    const invite = searchParams.get("invite");
+    const redirect = invite ? `/login?registered=true&invite=${invite}` : "/login?registered=true";
+    router.push(redirect);
     router.refresh();
   }
 
