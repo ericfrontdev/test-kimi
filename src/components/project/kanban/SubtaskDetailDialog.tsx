@@ -6,10 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MentionTextarea, extractMentions } from "@/components/ui/mention-textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { Task, ProjectUser, TaskStatus } from "./types";
@@ -24,6 +24,7 @@ interface Comment {
     id: string;
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -69,15 +70,17 @@ export function SubtaskDetailDialog({
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [taskDetail, setTaskDetail] = useState<Task | null>(null);
-  const [currentUserInitial, setCurrentUserInitial] = useState("?");
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email || "";
-      setCurrentUserInitial(getInitials(name));
-    });
+    fetch("/api/users/me")
+      .then((r) => r.json())
+      .then((data) => {
+        setCurrentUserName(data.name ?? data.email ?? null);
+        setCurrentUserAvatarUrl(data.avatarUrl ?? null);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -278,9 +281,7 @@ export function SubtaskDetailDialog({
                 <div className="space-y-4">
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
-                        {getInitials(comment.author.name || comment.author.email)}
-                      </div>
+                      <UserAvatar name={comment.author.name} email={comment.author.email} avatarUrl={comment.author.avatarUrl} size="md" />
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{comment.author.name || comment.author.email}</span>
@@ -294,9 +295,7 @@ export function SubtaskDetailDialog({
               )}
               
               <div className="flex items-start gap-3 pt-2">
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
-                  {currentUserInitial}
-                </div>
+                <UserAvatar name={currentUserName} avatarUrl={currentUserAvatarUrl} size="md" />
                 <div className="flex-1">
                   <MentionTextarea
                     placeholder="Ajouter un commentaire... Utilisez @ pour mentionner"
@@ -331,9 +330,7 @@ export function SubtaskDetailDialog({
                 Activite
               </h3>
               <div className="flex items-start gap-3 text-sm">
-                <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">
-                  EO
-                </div>
+                <UserAvatar name={currentUserName} avatarUrl={currentUserAvatarUrl} size="sm" />
                 <div>
                   <span className="font-medium">Vous</span> avez cree cette sous-tache
                   <Badge variant="secondary" className="text-xs ml-2">{currentStatusConfig?.title}</Badge>
@@ -368,9 +365,7 @@ export function SubtaskDetailDialog({
               <div className="text-sm">
                 {displayTask.assignee ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">
-                      {getInitials(displayTask.assignee.name || displayTask.assignee.email)}
-                    </div>
+                    <UserAvatar name={displayTask.assignee.name} email={displayTask.assignee.email} avatarUrl={displayTask.assignee.avatarUrl} size="xs" />
                     <span>{displayTask.assignee.name || displayTask.assignee.email}</span>
                   </div>
                 ) : (

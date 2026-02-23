@@ -47,7 +47,7 @@ export async function GET(
       where: { storyId },
       include: {
         author: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatarUrl: true },
         },
       },
       orderBy: { createdAt: "asc" },
@@ -116,7 +116,7 @@ export async function POST(
       },
       include: {
         author: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatarUrl: true },
         },
       },
     });

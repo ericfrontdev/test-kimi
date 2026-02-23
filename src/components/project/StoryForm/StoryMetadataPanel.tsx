@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, Plus } from "lucide-react";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const priorities = [
   { value: "0", label: "P0 - Critique", color: "bg-red-500" },
@@ -153,9 +154,7 @@ export function StoryMetadataPanel({
               users.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                      {getInitials(user.name || user.email)}
-                    </div>
+                    <UserAvatar name={user.name} email={user.email} avatarUrl={user.avatarUrl} size="xs" />
                     <span>{user.name || user.email}</span>
                   </div>
                 </SelectItem>

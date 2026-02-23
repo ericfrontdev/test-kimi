@@ -49,7 +49,7 @@ export async function GET(
             title: true, 
             status: true,
             assignee: {
-              select: { id: true, name: true, email: true },
+              select: { id: true, name: true, email: true, avatarUrl: true },
             },
             comments: {
               select: {
@@ -57,7 +57,7 @@ export async function GET(
                 content: true,
                 createdAt: true,
                 author: {
-                  select: { id: true, name: true, email: true },
+                  select: { id: true, name: true, email: true, avatarUrl: true },
                 },
               },
               orderBy: { createdAt: "asc" },
@@ -66,10 +66,10 @@ export async function GET(
           orderBy: { taskNumber: "asc" },
         },
         author: {
-          select: { name: true, email: true },
+          select: { name: true, email: true, avatarUrl: true },
         },
         assignee: {
-          select: { name: true, email: true },
+          select: { name: true, email: true, avatarUrl: true },
         },
         labels: true,
         checklists: {

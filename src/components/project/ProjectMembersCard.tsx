@@ -5,8 +5,7 @@ import { useState } from "react";
 import { Users, UserPlus, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getInitials } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { fetcher } from "@/lib/fetcher";
 
@@ -67,11 +66,7 @@ export function ProjectMembersCard({ projectId }: ProjectMembersCardProps) {
                   className="flex items-center gap-2 px-2 py-1 rounded-full bg-muted"
                   title={member.email}
                 >
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
-                      {getInitials(member.name || member.email)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
                   <span className="text-sm truncate max-w-[120px]">
                     {member.name || member.email}
                   </span>

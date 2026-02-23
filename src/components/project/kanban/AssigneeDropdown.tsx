@@ -11,11 +11,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { getInitials } from "@/lib/utils";
 import type { ProjectUser } from "./types";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 interface AssigneeDropdownProps {
-  assignee: { name: string | null; email: string } | null | undefined;
+  assignee: { name: string | null; email: string; avatarUrl?: string | null } | null | undefined;
   assigneeId: string | null | undefined;
   projectUsers: ProjectUser[];
   subtasksCount: number;
@@ -49,9 +49,7 @@ export function AssigneeDropdown({
           onClick={(e) => e.stopPropagation()}
         >
           {assignee ? (
-            <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-[9px] font-medium text-primary-foreground">
-              {getInitials(assignee.name || assignee.email)}
-            </div>
+            <UserAvatar name={assignee.name} email={assignee.email} avatarUrl={assignee.avatarUrl} size="sm" />
           ) : (
             <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
           )}
@@ -97,9 +95,7 @@ export function AssigneeDropdown({
               handleSelect(user.id);
             }}
           >
-            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-medium">
-              {getInitials(user.name || user.email)}
-            </div>
+            <UserAvatar name={user.name} email={user.email} avatarUrl={user.avatarUrl} size="xs" />
             <span className="truncate">{user.name || user.email}</span>
             {assigneeId === user.id && <Check className="h-3 w-3 ml-auto" />}
           </DropdownMenuItem>

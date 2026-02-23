@@ -8,6 +8,7 @@ export interface TaskComment {
     id: string;
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -29,6 +30,7 @@ export interface Task {
   assignee?: {
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   } | null;
   comments?: TaskComment[];
 }
@@ -46,6 +48,7 @@ export interface Story {
   assignee?: {
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   } | null;
   dueDate?: string | null;
   labels?: Label[];
@@ -78,6 +81,7 @@ export interface ProjectUser {
   id: string;
   name: string | null;
   email: string;
+  avatarUrl?: string | null;
 }
 
 export interface Label {

@@ -16,7 +16,7 @@ interface ProjectState {
   updateStoryAssignee: (
     storyId: string,
     assigneeId: string | null,
-    assignee: { name: string | null; email: string } | null
+    assignee: { name: string | null; email: string; avatarUrl?: string | null } | null
   ) => Promise<void>;
   updateStoryFields: (
     storyId: string,

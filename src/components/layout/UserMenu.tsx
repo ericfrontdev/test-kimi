@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, User, UserPlus, Sun, Check, Monitor, Moon } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { InviteUserDialog } from "./InviteUserDialog";
+import { ProfileDialog } from "./ProfileDialog";
 import { useTheme } from "next-themes";
-import { getInitials } from "@/lib/utils";
 
 type Theme = "system" | "light" | "dark";
 
@@ -26,23 +27,23 @@ const themes: { value: Theme; label: string; icon: typeof Monitor }[] = [
 export function UserMenu() {
   const router = useRouter();
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [userInitials, setUserInitials] = useState("?");
+  const [profileOpen, setProfileOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const [themeOpen, setThemeOpen] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
-    async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const name = user.user_metadata?.name || user.email?.split("@")[0] || "?";
+    fetch("/api/users/me")
+      .then((r) => r.json())
+      .then((data) => {
+        const name = data.name || data.email?.split("@")[0] || "?";
         setUserName(name);
-        setUserInitials(getInitials(name));
-      }
-    }
-    getUser();
-  }, [supabase]);
+        setUserAvatarUrl(data.avatarUrl ?? null);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -56,16 +57,16 @@ export function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button 
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+          <button
+            className="hover:opacity-90 transition-opacity cursor-pointer"
             title={userName || "Utilisateur"}
             aria-label={userName || "Utilisateur"}
           >
-            {userInitials}
+            <UserAvatar name={userName} avatarUrl={userAvatarUrl} size="md" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem className="gap-2 cursor-pointer">
+          <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2 cursor-pointer">
             <User size={16} />
             <span>Profil</span>
           </DropdownMenuItem>
@@ -132,6 +133,13 @@ export function UserMenu() {
       </DropdownMenu>
 
       <InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <ProfileDialog
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        onNameUpdated={(newName) => {
+          setUserName(newName);
+        }}
+      />
     </>
   );
 }

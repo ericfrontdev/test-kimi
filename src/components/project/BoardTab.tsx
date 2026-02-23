@@ -166,7 +166,7 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   async function handleAssigneeChange(storyId: string, assigneeId: string | null, assignSubtasks: boolean) {
     const user = assigneeId ? projectUsers.find((u) => u.id === assigneeId) : null;
-    const assignee = user ? { name: user.name, email: user.email } : null;
+    const assignee = user ? { name: user.name, email: user.email, avatarUrl: user.avatarUrl ?? null } : null;
 
     // Update story in store (handles optimistic update + API call + rollback)
     await updateStoryAssignee(storyId, assigneeId, assignee);

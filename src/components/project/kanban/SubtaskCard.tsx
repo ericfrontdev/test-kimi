@@ -10,9 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Task, ProjectUser, TaskStatus } from "./types";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 interface SubtaskCardProps {
   task: Task;
@@ -63,9 +64,7 @@ export function SubtaskCard({
                 onClick={(e) => e.stopPropagation()}
               >
                 {task.assignee ? (
-                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-[9px] font-medium text-primary-foreground">
-                    {getInitials(task.assignee.name || task.assignee.email)}
-                  </div>
+                  <UserAvatar name={task.assignee.name} email={task.assignee.email} avatarUrl={task.assignee.avatarUrl} size="sm" />
                 ) : (
                   <UserPlus className="h-4 w-4 text-muted-foreground" />
                 )}
@@ -94,9 +93,7 @@ export function SubtaskCard({
                     setIsAssignOpen(false);
                   }}
                 >
-                  <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-medium">
-                    {getInitials(user.name || user.email)}
-                  </div>
+                  <UserAvatar name={user.name} email={user.email} avatarUrl={user.avatarUrl} size="xs" />
                   <span className="truncate">{user.name || user.email}</span>
                   {task.assignee?.email === user.email && <Check className="h-3 w-3 ml-auto" />}
                 </DropdownMenuItem>

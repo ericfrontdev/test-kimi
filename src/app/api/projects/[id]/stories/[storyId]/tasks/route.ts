@@ -74,14 +74,14 @@ export async function POST(
         title: true,
         status: true,
         assignee: {
-          select: { name: true, email: true },
+          select: { name: true, email: true, avatarUrl: true },
         },
         comments: {
           select: {
             id: true,
             content: true,
             createdAt: true,
-            author: { select: { id: true, name: true, email: true } },
+            author: { select: { id: true, name: true, email: true, avatarUrl: true } },
           },
         },
       },

@@ -25,7 +25,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { MentionTextarea, extractMentions } from "@/components/ui/mention-textarea";
 import { createClient } from "@/lib/supabase/client";
@@ -38,6 +39,7 @@ interface TaskAssignee {
   id: string;
   name: string | null;
   email: string;
+  avatarUrl?: string | null;
 }
 
 interface Task {
@@ -56,6 +58,7 @@ interface Comment {
     id: string;
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -73,10 +76,12 @@ interface StoryDetail {
   assignee?: {
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   } | null;
   author?: {
     name: string | null;
     email: string;
+    avatarUrl?: string | null;
   } | null;
   dueDate?: string | null;
   labels?: Label[];
@@ -163,7 +168,8 @@ export function StoryDetailDialog({
   // Comments state
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [currentUserInitial, setCurrentUserInitial] = useState("?");
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -175,12 +181,13 @@ export function StoryDetailDialog({
   }, [open, scrollToComments, isLoadingComments]);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email || "";
-      setCurrentUserInitial(getInitials(name));
-    });
+    fetch("/api/users/me")
+      .then((r) => r.json())
+      .then((data) => {
+        setCurrentUserName(data.name ?? data.email ?? null);
+        setCurrentUserAvatarUrl(data.avatarUrl ?? null);
+      })
+      .catch(() => {});
   }, []);
 
   // Archive confirmation dialog
@@ -570,9 +577,7 @@ export function StoryDetailDialog({
                               title={task.assignee ? `Assigné à ${task.assignee.name || task.assignee.email}` : "Assigner"}
                             >
                               {task.assignee ? (
-                                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-[10px] font-medium text-primary-foreground">
-                                  {getInitials(task.assignee.name || task.assignee.email)}
-                                </div>
+                                <UserAvatar name={task.assignee.name} email={task.assignee.email} avatarUrl={task.assignee.avatarUrl} size="xs" />
                               ) : (
                                 <User className="h-3.5 w-3.5" />
                               )}
@@ -598,9 +603,7 @@ export function StoryDetailDialog({
                                     task.assignee?.id === user.id && "bg-accent"
                                   )}
                                 >
-                                  <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-[10px] font-medium text-primary-foreground mr-2">
-                                    {getInitials(user.name || user.email)}
-                                  </div>
+                                  <UserAvatar name={user.name} email={user.email} avatarUrl={user.avatarUrl} size="xs" className="mr-2" />
                                   {user.name || user.email}
                                   {task.assignee?.id === user.id && <Check className="h-3 w-3 ml-auto" />}
                                 </DropdownMenuItem>
@@ -742,9 +745,7 @@ export function StoryDetailDialog({
                   <div className="space-y-4">
                     {comments.map((comment) => (
                       <div key={comment.id} className="flex items-start gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
-                          {getInitials(comment.author.name || comment.author.email)}
-                        </div>
+                        <UserAvatar name={comment.author.name} email={comment.author.email} avatarUrl={comment.author.avatarUrl} size="md" />
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">
@@ -765,9 +766,7 @@ export function StoryDetailDialog({
                 
                 {/* Add Comment */}
                 <div className="flex items-start gap-3 pt-2">
-                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
-                    {currentUserInitial}
-                  </div>
+                  <UserAvatar name={currentUserName} avatarUrl={currentUserAvatarUrl} size="md" />
                   <div className="flex-1">
                     <MentionTextarea
                       placeholder="Ajouter un commentaire... Utilisez @ pour mentionner"
@@ -805,9 +804,7 @@ export function StoryDetailDialog({
                   Activité
                 </h3>
                 <div className="flex items-start gap-3 text-sm">
-                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">
-                    {getInitials(storyDetail?.author?.name || storyDetail?.author?.email || "")}
-                  </div>
+                  <UserAvatar name={storyDetail?.author?.name} email={storyDetail?.author?.email} avatarUrl={storyDetail?.author?.avatarUrl} size="sm" />
                   <div>
                     <span className="font-medium">{storyDetail?.author?.name || storyDetail?.author?.email}</span>
                     {" "}a créé cette story dans{" "}
@@ -946,9 +943,7 @@ export function StoryDetailDialog({
                       <Button variant="ghost" className="w-full justify-start h-auto py-1.5 px-2 -ml-2 font-normal">
                         {storyDetail?.assignee ? (
                           <div className="flex items-center gap-2">
-                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
-                              {getInitials(storyDetail.assignee.name || storyDetail.assignee.email)}
-                            </div>
+                            <UserAvatar name={storyDetail.assignee.name} email={storyDetail.assignee.email} avatarUrl={storyDetail.assignee.avatarUrl} size="xs" />
                             <span className="text-sm">{storyDetail.assignee.name || storyDetail.assignee.email}</span>
                           </div>
                         ) : (
@@ -964,9 +959,7 @@ export function StoryDetailDialog({
                       {projectUsers.map((u) => (
                         <DropdownMenuItem key={u.id} onClick={() => handleAssignStory(u.id)}>
                           <div className="flex items-center gap-2 flex-1">
-                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground flex-shrink-0">
-                              {getInitials(u.name || u.email)}
-                            </div>
+                            <UserAvatar name={u.name} email={u.email} avatarUrl={u.avatarUrl} size="xs" />
                             <div className="flex flex-col min-w-0">
                               <span className="text-sm truncate">{u.name || u.email}</span>
                               {u.name && <span className="text-xs text-muted-foreground truncate">{u.email}</span>}
@@ -1017,9 +1010,7 @@ export function StoryDetailDialog({
                   <div className="text-sm">
                     {storyDetail?.author ? (
                       <div className="flex items-center gap-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">
-                          {getInitials(storyDetail.author.name || storyDetail.author.email)}
-                        </div>
+                        <UserAvatar name={storyDetail.author.name} email={storyDetail.author.email} avatarUrl={storyDetail.author.avatarUrl} size="xs" />
                         <span>{storyDetail.author.name || storyDetail.author.email}</span>
                       </div>
                     ) : (

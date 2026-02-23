@@ -1,33 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { getGreetingFr } from "@/lib/my-work/mock-data";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function Greeting() {
   const greeting = getGreetingFr();
   const [name, setName] = useState<string>("");
-  const [initial, setInitial] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const fullName =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email ||
-        "";
-      setName(fullName);
-      setInitial(fullName.charAt(0).toUpperCase());
-    });
+    fetch("/api/users/me")
+      .then((r) => r.json())
+      .then((data) => {
+        setName(data.name ?? data.email ?? "");
+        setAvatarUrl(data.avatarUrl ?? null);
+      })
+      .catch(() => {});
   }, []);
 
   return (
     <div className="flex items-center gap-2">
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-medium text-white">
-        {initial}
-      </span>
+      <UserAvatar name={name} avatarUrl={avatarUrl} size="sm" />
       <h1 className="text-xl font-semibold">
         {greeting}{name ? `, ${name}` : ""}
       </h1>

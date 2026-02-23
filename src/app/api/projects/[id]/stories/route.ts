@@ -51,7 +51,7 @@ export async function GET(
         where: { projectId, ...statusFilter },
         include: {
           tasks: { select: { id: true, status: true } },
-          assignee: { select: { name: true, email: true } },
+          assignee: { select: { name: true, email: true, avatarUrl: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
