@@ -295,6 +295,16 @@ export function BoardTab({ projectId }: BoardTabProps) {
       return;
     }
 
+    // Collapse subtasks accordion if the story moved to a different column
+    const originalStatus = storeStories.find((s) => s.id === active.id)?.status;
+    if (story.status !== originalStatus) {
+      setExpandedStories((prev) => {
+        const next = new Set(prev);
+        next.delete(active.id as string);
+        return next;
+      });
+    }
+
     // Commit to store — handles optimistic update + API call + rollback
     updateStoryStatus(active.id as string, story.status);
   }
