@@ -285,6 +285,7 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
         projectId={projectId}
         open={isDetailOpen}
         onOpenChange={handleDetailOpenChange}
+        scrollToComments={!!storyIdFromUrl}
       />
 
       {/* Edit Story Dialog */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { X, Edit3, Copy, Link2, CheckSquare, User, Flag, Calendar, Tag, GitBranch, MessageSquare, Clock, MoreHorizontal, Check, Circle, Loader2, FileText, FolderOpen, Archive, ArchiveRestore, CopyCheck, ListChecks, Paperclip } from "lucide-react";
@@ -89,6 +89,7 @@ interface StoryDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: () => void;
+  scrollToComments?: boolean;
 }
 
 function getStatusIcon(status: string) {
@@ -139,6 +140,7 @@ export function StoryDetailDialog({
   open,
   onOpenChange,
   onEdit,
+  scrollToComments = false,
 }: StoryDetailDialogProps) {
   const storyKey = open && story ? `/api/projects/${projectId}/stories/${story.id}` : null;
   const commentsKey = open && story ? `/api/projects/${projectId}/stories/${story.id}/comments` : null;
@@ -162,6 +164,15 @@ export function StoryDetailDialog({
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [currentUserInitial, setCurrentUserInitial] = useState("?");
+  const commentsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !scrollToComments || isLoadingComments) return;
+    const timer = setTimeout(() => {
+      commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [open, scrollToComments, isLoadingComments]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -711,7 +722,7 @@ export function StoryDetailDialog({
               <Separator />
 
               {/* Comments */}
-              <div className="space-y-3">
+              <div ref={commentsRef} className="space-y-3">
                 <h3 className="text-sm font-medium flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Commentaires
