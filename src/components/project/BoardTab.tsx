@@ -19,6 +19,7 @@ import {
   defaultDropAnimationSideEffects,
   DropAnimation,
 } from "@dnd-kit/core";
+import { AlertTriangle } from "lucide-react";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { KanbanColumn } from "./kanban/KanbanColumn";
 import { StoryCardOverlay } from "./kanban/StoryCardOverlay";
@@ -54,6 +55,20 @@ export function BoardTab({ projectId }: BoardTabProps) {
   // snapshot of store at drag-start during active drag
   const [dragStories, setDragStories] = useState<Story[] | null>(null);
   const localStories = dragStories ?? storeStories;
+
+  // Block moving to IN_REVIEW / DONE when subtasks are incomplete
+  const blockedRef = useRef(false);
+  const [blockWarning, setBlockWarning] = useState(false);
+
+  function canMoveToStatus(story: Story, newStatus: string): boolean {
+    if (newStatus !== "IN_REVIEW" && newStatus !== "DONE") return true;
+    const loaded = storyTasks[story.id];
+    if (loaded !== undefined) {
+      return loaded.length === 0 || loaded.every((t) => t.status === "DONE");
+    }
+    // Fallback to store counts (from initial server render)
+    return story.subtasks === 0 || story.completedSubtasks === story.subtasks;
+  }
 
   const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
     `/api/projects/${projectId}/members`,
@@ -223,6 +238,7 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   function handleDragStart(event: DragStartEvent) {
     // Snapshot the current store state so drag updates are isolated
+    blockedRef.current = false;
     setDragStories(storeStories);
     setActiveId(event.active.id as string);
   }
@@ -238,6 +254,11 @@ export function BoardTab({ projectId }: BoardTabProps) {
     const column = columns.find((c) => c.id === overId);
 
     if (column && activeStory.status !== column.id) {
+      if (!canMoveToStatus(activeStory, column.id)) {
+        blockedRef.current = true;
+        return;
+      }
+      blockedRef.current = false;
       setDragStories((prev) =>
         prev!.map((s) => (s.id === active.id ? { ...s, status: column.id } : s))
       );
@@ -246,6 +267,11 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
     const overStory = dragStories.find((s) => s.id === overId);
     if (overStory && activeStory.status !== overStory.status) {
+      if (!canMoveToStatus(activeStory, overStory.status)) {
+        blockedRef.current = true;
+        return;
+      }
+      blockedRef.current = false;
       setDragStories((prev) =>
         prev!.map((s) => (s.id === active.id ? { ...s, status: overStory.status } : s))
       );
@@ -254,12 +280,20 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   function handleDragEnd(event: DragEndEvent) {
     const { active } = event;
+    const wasBlocked = blockedRef.current;
+    blockedRef.current = false;
     setActiveId(null);
 
     const story = (dragStories ?? storeStories).find((s) => s.id === active.id);
     setDragStories(null);
 
     if (!story) return;
+
+    if (wasBlocked) {
+      setBlockWarning(true);
+      setTimeout(() => setBlockWarning(false), 6000);
+      return;
+    }
 
     // Commit to store — handles optimistic update + API call + rollback
     updateStoryStatus(active.id as string, story.status);
@@ -273,6 +307,12 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   return (
     <>
+      {blockWarning && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Toutes les sous-tâches doivent être terminées avant de passer cette story en révision ou terminé.
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
