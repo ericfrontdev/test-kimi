@@ -64,6 +64,17 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
+  const membership = await prisma.projectMember.findFirst({
+    where: { projectId: id, userId: user.id },
+    select: { role: true },
+  });
+  const userRole: "OWNER" | "ADMIN" | "MEMBER" =
+    project.ownerId === user.id
+      ? "OWNER"
+      : membership?.role === "ADMIN"
+      ? "ADMIN"
+      : "MEMBER";
+
   const formattedStories = project.stories.map((story) => ({
     id: story.id,
     storyNumber: story.storyNumber,
@@ -85,6 +96,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         project={{ id: project.id, name: project.name, description: project.description }}
         stories={formattedStories}
         hasMoreStories={hasMoreStories}
+        userRole={userRole}
       />
     </MainLayout>
   );

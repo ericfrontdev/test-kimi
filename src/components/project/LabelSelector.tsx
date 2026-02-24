@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Plus, Tag, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,7 +21,7 @@ interface LabelSelectorProps {
   selectedLabels: Label[];
   projectLabels: Label[];
   onToggle: (label: Label) => void;
-  onCreateAndToggle: (name: string, color: string) => Promise<void>;
+  onCreateAndToggle?: (name: string, color: string) => Promise<void>;
   onDelete?: (labelId: string) => Promise<void>;
 }
 
@@ -44,7 +45,7 @@ export function LabelSelector({
   );
 
   async function handleCreate() {
-    if (!newName.trim()) return;
+    if (!newName.trim() || !onCreateAndToggle) return;
     setIsSubmitting(true);
     try {
       await onCreateAndToggle(newName.trim(), newColor);
@@ -110,18 +111,22 @@ export function LabelSelector({
                   <span className="flex-1 truncate">{label.name}</span>
                   {selected && <Check className="h-3 w-3 flex-shrink-0" />}
                 </button>
-                {onDelete && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDelete) {
                       onDelete(label.id);
-                    }}
-                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
+                    } else {
+                      toast.error("Action non autorisée", {
+                        description: "Seuls les admins et propriétaires peuvent supprimer des labels.",
+                      });
+                    }
+                  }}
+                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </div>
             );
           })}
@@ -129,7 +134,7 @@ export function LabelSelector({
 
         <Separator className="my-2" />
 
-        {isCreating ? (
+        {onCreateAndToggle && isCreating ? (
           <div className="space-y-2">
             <Input
               placeholder="Nom du label"
@@ -168,7 +173,15 @@ export function LabelSelector({
         ) : (
           <button
             type="button"
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              if (onCreateAndToggle) {
+                setIsCreating(true);
+              } else {
+                toast.error("Action non autorisée", {
+                  description: "Seuls les admins et propriétaires peuvent créer des labels.",
+                });
+              }
+            }}
             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-muted-foreground"
           >
             <Plus className="h-3 w-3" />

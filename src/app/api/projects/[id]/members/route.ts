@@ -58,12 +58,17 @@ export async function GET(
       },
     });
 
-    const users = members.map((m) => m.user);
-    if (owner && !users.find((u) => u.id === owner.id)) {
-      users.unshift(owner);
+    const enriched = members.map((m) => ({
+      ...m.user,
+      role: m.role as "ADMIN" | "MEMBER",
+      isOwner: m.userId === project.ownerId,
+    }));
+
+    if (owner && !enriched.find((u) => u.id === owner.id)) {
+      enriched.unshift({ ...owner, role: "ADMIN" as const, isOwner: true });
     }
 
-    return NextResponse.json(users);
+    return NextResponse.json(enriched);
   } catch {
     return NextResponse.json(
       { error: "Échec de la récupération des membres" },
@@ -305,6 +310,66 @@ export async function DELETE(
   } catch {
     return NextResponse.json(
       { error: "Échec de la suppression du membre" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/projects/[id]/members - Change member role (owner only)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: projectId } = await params;
+
+  try {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId },
+      select: { ownerId: true },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
+    }
+
+    if (project.ownerId !== user.id) {
+      return NextResponse.json({ error: "Seul le propriétaire peut modifier les rôles" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { userId, role } = body as { userId: string; role: "ADMIN" | "MEMBER" };
+
+    if (!userId || !role || !["ADMIN", "MEMBER"].includes(role)) {
+      return NextResponse.json({ error: "userId et role (ADMIN|MEMBER) requis" }, { status: 400 });
+    }
+
+    if (userId === project.ownerId) {
+      return NextResponse.json({ error: "Impossible de modifier le rôle du propriétaire" }, { status: 400 });
+    }
+
+    const updated = await prisma.projectMember.update({
+      where: { projectId_userId: { projectId, userId } },
+      data: { role },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      },
+    });
+
+    return NextResponse.json({
+      ...updated.user,
+      role: updated.role as "ADMIN" | "MEMBER",
+      isOwner: false,
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Échec de la mise à jour du rôle" },
       { status: 500 }
     );
   }

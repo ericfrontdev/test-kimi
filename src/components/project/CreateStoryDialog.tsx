@@ -28,6 +28,7 @@ import { fetcher } from "@/lib/fetcher";
 import type { ProjectUser, Label } from "@/components/project/kanban/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LabelSelector } from "@/components/project/LabelSelector";
+import { useProjectStore } from "@/stores/project";
 
 interface CreateStoryDialogProps {
   projectId: string;
@@ -76,6 +77,8 @@ export function CreateStoryDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createAnother, setCreateAnother] = useState(false);
+
+  const isAdmin = useProjectStore((s) => s.userRole) !== "MEMBER";
 
   const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
     open ? `/api/projects/${projectId}/members` : null,
@@ -564,8 +567,8 @@ export function CreateStoryDialog({
                   selectedLabels={selectedLabels}
                   projectLabels={projectLabels}
                   onToggle={handleToggleLabel}
-                  onCreateAndToggle={handleCreateAndToggleLabel}
-                  onDelete={handleDeleteLabel}
+                  onCreateAndToggle={isAdmin ? handleCreateAndToggleLabel : undefined}
+                  onDelete={isAdmin ? handleDeleteLabel : undefined}
                 />
               </div>
             </div>

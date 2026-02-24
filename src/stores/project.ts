@@ -6,6 +6,7 @@ interface ProjectState {
   stories: Story[];
   hasMoreStories: boolean;
   isLoadingMore: boolean;
+  userRole: "OWNER" | "ADMIN" | "MEMBER";
 
   // Kanban UI state
   expandedStories: Set<string>;
@@ -13,7 +14,7 @@ interface ProjectState {
   loadingTasks: Set<string>;
   projectUsers: ProjectUser[];
 
-  setProject: (projectId: string, stories: Story[], hasMoreStories?: boolean) => void;
+  setProject: (projectId: string, stories: Story[], hasMoreStories?: boolean, userRole?: "OWNER" | "ADMIN" | "MEMBER") => void;
   addStory: (story: Story) => void;
   removeStory: (storyId: string) => void;
   appendStories: (stories: Story[], hasMore: boolean) => void;
@@ -48,17 +49,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   stories: [],
   hasMoreStories: false,
   isLoadingMore: false,
+  userRole: "MEMBER",
 
   expandedStories: new Set(),
   storyTasks: {},
   loadingTasks: new Set(),
   projectUsers: [],
 
-  setProject: (projectId, stories, hasMoreStories = false) =>
+  setProject: (projectId, stories, hasMoreStories = false, userRole = "MEMBER") =>
     set({
       projectId,
       stories,
       hasMoreStories,
+      userRole,
       expandedStories: new Set(),
       storyTasks: {},
       loadingTasks: new Set(),
