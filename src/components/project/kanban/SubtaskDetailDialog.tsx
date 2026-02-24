@@ -13,6 +13,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useProjectStore } from "@/stores/project";
+import { sanitizeHtml } from "@/lib/sanitize";
 import type { Task, TaskStatus } from "./types";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { taskStatuses } from "./types";
@@ -240,7 +241,7 @@ export function SubtaskDetailDialog({
                   {displayTask.description ? (
                     <div 
                       className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: displayTask.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayTask.description) }}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground italic">Aucune description</p>

@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Bold, Italic, List, ListOrdered, CheckSquare, Quote, Code, Link, Heading1, Heading2, Heading3, Eye, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface MarkdownEditorProps {
@@ -169,7 +170,7 @@ export function MarkdownEditor({
       <TabsContent value="preview" className="mt-0">
         <div 
           className="w-full h-[300px] p-4 prose prose-sm max-w-none overflow-y-auto"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(value) || `<span class="text-muted-foreground italic">Rien à afficher</span>` }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(value)) || `<span class="text-muted-foreground italic">Rien à afficher</span>` }}
         />
       </TabsContent>
     </Tabs>

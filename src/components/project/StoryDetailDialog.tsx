@@ -35,6 +35,7 @@ import { LabelSelector } from "@/components/project/LabelSelector";
 import { ChecklistSection } from "@/components/project/ChecklistSection";
 import type { Label, Checklist } from "@/components/project/kanban/types";
 import { useProjectStore } from "@/stores/project";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface TaskAssignee {
   id: string;
@@ -495,7 +496,7 @@ export function StoryDetailDialog({
                     {storyDetail?.description ? (
                       <div 
                         className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: storyDetail.description }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(storyDetail.description) }}
                       />
                     ) : (
                       <p className="text-sm text-muted-foreground italic">

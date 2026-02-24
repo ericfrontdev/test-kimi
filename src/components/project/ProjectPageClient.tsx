@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Story } from "./kanban/types";
 import { useProjectStore } from "@/stores/project";
 import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const VALID_TABS = ["description", "backlog", "board", "archived"] as const;
 type Tab = (typeof VALID_TABS)[number];
@@ -107,18 +108,20 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
       </div>
 
       {/* Tabs — Suspense required by useSearchParams in Next.js App Router */}
-      <Suspense fallback={
-        <Tabs defaultValue="description" className="w-full">
-          <TabsList>
-            <TabsTrigger value="description">Description</TabsTrigger>
-            <TabsTrigger value="backlog">Backlog</TabsTrigger>
-            <TabsTrigger value="board">Tableau</TabsTrigger>
-            <TabsTrigger value="archived">Archivées</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      }>
-        <ProjectTabs project={project} />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={
+          <Tabs defaultValue="description" className="w-full">
+            <TabsList>
+              <TabsTrigger value="description">Description</TabsTrigger>
+              <TabsTrigger value="backlog">Backlog</TabsTrigger>
+              <TabsTrigger value="board">Tableau</TabsTrigger>
+              <TabsTrigger value="archived">Archivées</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }>
+          <ProjectTabs project={project} />
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
