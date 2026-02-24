@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
 const updateMeSchema = z.object({
@@ -54,6 +55,30 @@ export async function GET() {
     });
   } catch {
     return NextResponse.json({ error: "Échec de la récupération du profil" }, { status: 500 });
+  }
+}
+
+// DELETE /api/users/me
+export async function DELETE() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const ownedProject = await prisma.project.findFirst({ where: { ownerId: user.id } });
+  if (ownedProject) {
+    return NextResponse.json(
+      { error: "Vous possédez des projets. Transférez ou supprimez-les avant de supprimer votre compte." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: user.id } });
+    const admin = createAdminClient();
+    await admin.auth.admin.deleteUser(user.id);
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Échec de la suppression du compte" }, { status: 500 });
   }
 }
 

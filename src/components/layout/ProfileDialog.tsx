@@ -8,6 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useMyWorkStore } from "@/stores/my-work";
+import { useProjectsStore } from "@/stores/projects";
 
 interface Project {
   id: string;
@@ -41,6 +53,10 @@ interface ProfileDialogProps {
 
 export function ProfileDialog({ open, onOpenChange, onNameUpdated }: ProfileDialogProps) {
   const router = useRouter();
+  const supabase = createClient();
+  const resetCache = useMyWorkStore((s) => s.resetCache);
+  const resetProjects = useProjectsStore((s) => s.reset);
+
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -60,6 +76,15 @@ export function ProfileDialog({ open, onOpenChange, onNameUpdated }: ProfileDial
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Danger Zone — Leave project
+  const [leaveTarget, setLeaveTarget] = useState<Project | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  // Danger Zone — Delete account
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -108,7 +133,6 @@ export function ProfileDialog({ open, onOpenChange, onNameUpdated }: ProfileDial
     }
     setIsSavingPassword(true);
     try {
-      const supabase = createClient();
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
         setPasswordError(error.message);
@@ -151,168 +175,318 @@ export function ProfileDialog({ open, onOpenChange, onNameUpdated }: ProfileDial
     }
   }
 
+  async function handleLeaveProject() {
+    if (!leaveTarget || !profile) return;
+    setIsLeaving(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${leaveTarget.id}/members?userId=${profile.id}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        setProfile((prev) =>
+          prev ? { ...prev, projects: prev.projects.filter((p) => p.id !== leaveTarget.id) } : prev
+        );
+      }
+    } finally {
+      setIsLeaving(false);
+      setLeaveTarget(null);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError(null);
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch("/api/users/me", { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok) {
+        setDeleteError(body.error ?? "Erreur lors de la suppression du compte.");
+        return;
+      }
+      resetCache();
+      resetProjects();
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }
+
   const displayName = profile?.name ?? profile?.email ?? "?";
   const initials = getInitials(displayName);
+  const memberProjects = profile?.projects.filter((p) => p.role === "MEMBER") ?? [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Mon profil</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Mon profil</DialogTitle>
+          </DialogHeader>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : profile ? (
-          <div className="space-y-6">
-            {/* Avatar + identité */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="h-16 w-16 rounded-full overflow-hidden bg-primary flex items-center justify-center text-xl font-semibold text-primary-foreground">
-                  {profile.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={profile.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-                  ) : (
-                    initials
-                  )}
-                </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingAvatar}
-                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border flex items-center justify-center hover:bg-muted transition-colors cursor-pointer"
-                  title="Changer la photo"
-                >
-                  {isUploadingAvatar ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Camera className="h-3 w-3" />
-                  )}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </div>
-              <div>
-                <p className="font-semibold">{displayName}</p>
-                <p className="text-sm text-muted-foreground">{profile.email}</p>
-                {avatarError && (
-                  <p className="text-xs text-destructive mt-1">{avatarError}</p>
-                )}
-                {profile.createdAt && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Membre depuis {new Date(profile.createdAt).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
-                  </p>
-                )}
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-
-            <Separator />
-
-            {/* Modifier le nom */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium">Nom d&apos;affichage</h3>
-              <div className="flex gap-2">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Votre nom"
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
-                />
-                <Button
-                  size="sm"
-                  onClick={handleSaveName}
-                  disabled={isSavingName || !name.trim() || name.trim() === profile.name}
-                >
-                  {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : nameSaved ? "Sauvegardé ✓" : "Sauvegarder"}
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Changer le mot de passe */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium">Mot de passe</h3>
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <Label htmlFor="new-password" className="text-xs text-muted-foreground">Nouveau mot de passe</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="6 caractères minimum"
+          ) : profile ? (
+            <div className="space-y-6">
+              {/* Avatar + identité */}
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="h-16 w-16 rounded-full overflow-hidden bg-primary flex items-center justify-center text-xl font-semibold text-primary-foreground">
+                    {profile.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profile.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border flex items-center justify-center hover:bg-muted transition-colors cursor-pointer"
+                    title="Changer la photo"
+                  >
+                    {isUploadingAvatar ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Camera className="h-3 w-3" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="confirm-password" className="text-xs text-muted-foreground">Confirmer</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Répéter le mot de passe"
-                    onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
-                  />
+                <div>
+                  <p className="font-semibold">{displayName}</p>
+                  <p className="text-sm text-muted-foreground">{profile.email}</p>
+                  {avatarError && (
+                    <p className="text-xs text-destructive mt-1">{avatarError}</p>
+                  )}
+                  {profile.createdAt && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Membre depuis {new Date(profile.createdAt).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+                    </p>
+                  )}
                 </div>
-                {passwordError && (
-                  <p className="text-xs text-destructive">{passwordError}</p>
-                )}
-                <Button
-                  size="sm"
-                  onClick={handleSavePassword}
-                  disabled={isSavingPassword || !newPassword || !confirmPassword}
-                >
-                  {isSavingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : passwordSaved ? "Modifié ✓" : "Changer le mot de passe"}
-                </Button>
               </div>
-            </div>
 
-            <Separator />
+              <Separator />
 
-            {/* Projets */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium">
-                Mes projets
-                <span className="ml-2 text-muted-foreground font-normal">({profile.projects.length})</span>
-              </h3>
-              {profile.projects.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun projet</p>
-              ) : (
+              {/* Modifier le nom */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Nom d&apos;affichage</h3>
+                <div className="flex gap-2">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Votre nom"
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveName}
+                    disabled={isSavingName || !name.trim() || name.trim() === profile.name}
+                  >
+                    {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : nameSaved ? "Sauvegardé ✓" : "Sauvegarder"}
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Changer le mot de passe */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Mot de passe</h3>
                 <div className="space-y-2">
-                  {profile.projects.map((project) => (
-                    <div
-                      key={project.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer group"
-                      onClick={() => { router.push(`/project/${project.id}`); onOpenChange(false); }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-3 w-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: project.color ?? "#6366f1" }}
-                        />
-                        <span className="text-sm font-medium">{project.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={project.role === "OWNER" ? "default" : "secondary"} className="text-xs">
-                          {project.role === "OWNER" ? "Propriétaire" : "Membre"}
-                        </Badge>
-                        <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </div>
-                  ))}
+                  <div className="space-y-1">
+                    <Label htmlFor="new-password" className="text-xs text-muted-foreground">Nouveau mot de passe</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="6 caractères minimum"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="confirm-password" className="text-xs text-muted-foreground">Confirmer</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Répéter le mot de passe"
+                      onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
+                    />
+                  </div>
+                  {passwordError && (
+                    <p className="text-xs text-destructive">{passwordError}</p>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={handleSavePassword}
+                    disabled={isSavingPassword || !newPassword || !confirmPassword}
+                  >
+                    {isSavingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : passwordSaved ? "Modifié ✓" : "Changer le mot de passe"}
+                  </Button>
                 </div>
-              )}
+              </div>
+
+              <Separator />
+
+              {/* Projets */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">
+                  Mes projets
+                  <span className="ml-2 text-muted-foreground font-normal">({profile.projects.length})</span>
+                </h3>
+                {profile.projects.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucun projet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {profile.projects.map((project) => (
+                      <div
+                        key={project.id}
+                        className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer group"
+                        onClick={() => { router.push(`/project/${project.id}`); onOpenChange(false); }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: project.color ?? "#6366f1" }}
+                          />
+                          <span className="text-sm font-medium">{project.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={project.role === "OWNER" ? "default" : "secondary"} className="text-xs">
+                            {project.role === "OWNER" ? "Propriétaire" : "Membre"}
+                          </Badge>
+                          <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Zone de danger */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-destructive">Zone de danger</h3>
+
+                {/* Quitter un projet */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Quitter un projet</p>
+                  {memberProjects.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Vous n&apos;êtes membre d&apos;aucun projet en tant que membre.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {memberProjects.map((project) => (
+                        <div
+                          key={project.id}
+                          className="flex items-center justify-between rounded-md border px-3 py-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-3 w-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: project.color ?? "#6366f1" }}
+                            />
+                            <span className="text-sm">{project.name}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                            onClick={() => setLeaveTarget(project)}
+                          >
+                            Quitter
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Supprimer le compte */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Supprimer mon compte</p>
+                  <p className="text-xs text-muted-foreground">
+                    Supprime définitivement votre compte. Vos projets existants ne seront pas supprimés.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => { setDeleteError(null); setDeleteDialogOpen(true); }}
+                  >
+                    Supprimer mon compte
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave project confirmation */}
+      <AlertDialog open={!!leaveTarget} onOpenChange={(o) => { if (!o) setLeaveTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitter {leaveTarget?.name} ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous perdrez accès à ce projet. Cette action peut être annulée si un propriétaire vous réinvite.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLeaving}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={isLeaving}
+              onClick={handleLeaveProject}
+            >
+              {isLeaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Quitter"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete account confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(o) => { if (!o && !isDeletingAccount) setDeleteDialogOpen(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer votre compte ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Votre compte et toutes vos données seront définitivement supprimés.
+              Vos projets existants ne seront pas supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive px-1">{deleteError}</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingAccount}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={isDeletingAccount}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteAccount();
+              }}
+            >
+              {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : "Supprimer définitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
