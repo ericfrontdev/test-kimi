@@ -152,6 +152,7 @@ model Story {
   checklists  Checklist[]
   
   @@unique([projectId, storyNumber])
+  @@index([projectId, status, createdAt(sort: Desc)])
   @@map("stories")
 }
 

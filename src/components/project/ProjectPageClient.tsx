@@ -9,7 +9,8 @@ import { CreateStoryDialog } from "./CreateStoryDialog";
 import { BacklogTab } from "./BacklogTab";
 import { BoardTab } from "./BoardTab";
 import { ArchivedTab } from "./ArchivedTab";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import type { Story } from "./kanban/types";
 import { useProjectStore } from "@/stores/project";
 import { toast } from "sonner";
@@ -38,16 +39,18 @@ interface ProjectPageClientProps {
 
 // Isolated component so useSearchParams is inside a Suspense boundary
 function ProjectTabs({ project }: { project: Project }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const rawTab = searchParams.get("tab");
-  const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "description";
+  const initialTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "description";
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
   function handleTabChange(tab: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", tab);
-    router.replace(`?${params.toString()}`, { scroll: false });
+    setActiveTab(tab as Tab);
+    // Update URL without triggering a Next.js server re-render
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    window.history.replaceState(null, "", url.toString());
   }
 
   return (

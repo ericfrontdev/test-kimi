@@ -30,7 +30,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const INITIAL_TAKE = 100;
 
-  const [project, totalNonArchived] = await Promise.all([
+  const [project, totalNonArchived, membership] = await Promise.all([
     prisma.project.findFirst({
       where: {
         id,
@@ -58,16 +58,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     prisma.story.count({
       where: { projectId: id, status: { not: "ARCHIVED" } },
     }),
+    prisma.projectMember.findFirst({
+      where: { projectId: id, userId: user.id },
+      select: { role: true },
+    }),
   ]);
 
   if (!project) {
     notFound();
   }
 
-  const membership = await prisma.projectMember.findFirst({
-    where: { projectId: id, userId: user.id },
-    select: { role: true },
-  });
   const userRole: "OWNER" | "ADMIN" | "MEMBER" =
     project.ownerId === user.id
       ? "OWNER"
