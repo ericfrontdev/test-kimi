@@ -192,21 +192,21 @@ export async function DELETE(
   const { id: projectId, storyId } = await params;
 
   try {
-    // Verify project exists and user has access
+    // Verify project exists and user has access (owner or admin only)
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
         OR: [
           { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
+          { members: { some: { userId: user.id, role: "ADMIN" } } },
         ],
       },
     });
 
     if (!project) {
       return NextResponse.json(
-        { error: "Projet non trouvé" },
-        { status: 404 }
+        { error: "Droits insuffisants" },
+        { status: 403 }
       );
     }
 

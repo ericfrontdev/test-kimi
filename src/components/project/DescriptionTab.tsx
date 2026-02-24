@@ -40,12 +40,14 @@ interface DescriptionTabProps {
   };
   projectId: string;
   onStoryCreated?: () => void;
+  userRole?: "OWNER" | "ADMIN" | "MEMBER";
 }
 
 export function DescriptionTab({
   project,
   projectId,
   onStoryCreated,
+  userRole,
 }: DescriptionTabProps) {
   const storeStories = useProjectStore((state) => state.stories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
@@ -158,11 +160,13 @@ export function DescriptionTab({
             <FileText size={18} />
             Stories
           </CardTitle>
-          <CreateStoryDialog
-            projectId={projectId}
-            variant="icon"
-            onSuccess={onStoryCreated}
-          />
+          {userRole !== "MEMBER" && (
+            <CreateStoryDialog
+              projectId={projectId}
+              variant="icon"
+              onSuccess={onStoryCreated}
+            />
+          )}
         </CardHeader>
         <CardContent>
           <DndContext

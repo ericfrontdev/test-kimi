@@ -29,10 +29,11 @@ interface ProjectPageClientProps {
   project: Project;
   stories: Story[];
   hasMoreStories: boolean;
+  userRole: "OWNER" | "ADMIN" | "MEMBER";
 }
 
 // Isolated component so useSearchParams is inside a Suspense boundary
-function ProjectTabs({ project, onStoryCreated }: { project: Project; onStoryCreated: () => void }) {
+function ProjectTabs({ project, onStoryCreated, userRole }: { project: Project; onStoryCreated: () => void; userRole: "OWNER" | "ADMIN" | "MEMBER" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -59,6 +60,7 @@ function ProjectTabs({ project, onStoryCreated }: { project: Project; onStoryCre
           project={{ name: project.name, description: project.description }}
           projectId={project.id}
           onStoryCreated={onStoryCreated}
+          userRole={userRole}
         />
       </TabsContent>
 
@@ -77,13 +79,13 @@ function ProjectTabs({ project, onStoryCreated }: { project: Project; onStoryCre
   );
 }
 
-export function ProjectPageClient({ project, stories: initialStories, hasMoreStories }: ProjectPageClientProps) {
+export function ProjectPageClient({ project, stories: initialStories, hasMoreStories, userRole }: ProjectPageClientProps) {
   const router = useRouter();
   const setProject = useProjectStore((state) => state.setProject);
 
   useEffect(() => {
-    setProject(project.id, initialStories, hasMoreStories);
-  }, [project.id, initialStories, hasMoreStories, setProject]);
+    setProject(project.id, initialStories, hasMoreStories, userRole);
+  }, [project.id, initialStories, hasMoreStories, userRole, setProject]);
 
   function handleStoryCreated() {
     router.refresh();
@@ -94,11 +96,13 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{project.name}</h1>
-        <CreateStoryDialog
-          projectId={project.id}
-          variant="button"
-          onSuccess={handleStoryCreated}
-        />
+        {userRole !== "MEMBER" && (
+          <CreateStoryDialog
+            projectId={project.id}
+            variant="button"
+            onSuccess={handleStoryCreated}
+          />
+        )}
       </div>
 
       {/* Tabs — Suspense required by useSearchParams in Next.js App Router */}
@@ -112,7 +116,7 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
           </TabsList>
         </Tabs>
       }>
-        <ProjectTabs project={project} onStoryCreated={handleStoryCreated} />
+        <ProjectTabs project={project} onStoryCreated={handleStoryCreated} userRole={userRole} />
       </Suspense>
     </div>
   );

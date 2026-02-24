@@ -60,12 +60,12 @@ export async function POST(
         id: projectId,
         OR: [
           { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
+          { members: { some: { userId: user.id, role: "ADMIN" } } },
         ],
       },
     });
 
-    if (!project) return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
+    if (!project) return NextResponse.json({ error: "Droits insuffisants" }, { status: 403 });
 
     const label = await prisma.label.create({
       data: { name: data.name, color: data.color, projectId },

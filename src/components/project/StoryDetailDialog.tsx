@@ -34,6 +34,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { LabelSelector } from "@/components/project/LabelSelector";
 import { ChecklistSection } from "@/components/project/ChecklistSection";
 import type { Label, Checklist } from "@/components/project/kanban/types";
+import { useProjectStore } from "@/stores/project";
 
 interface TaskAssignee {
   id: string;
@@ -147,6 +148,8 @@ export function StoryDetailDialog({
   onEdit,
   scrollToComments = false,
 }: StoryDetailDialogProps) {
+  const isAdmin = useProjectStore((s) => s.userRole) !== "MEMBER";
+
   const storyKey = open && story ? `/api/projects/${projectId}/stories/${story.id}` : null;
   const commentsKey = open && story ? `/api/projects/${projectId}/stories/${story.id}/comments` : null;
   const membersKey = open ? `/api/projects/${projectId}/members` : null;
@@ -983,8 +986,8 @@ export function StoryDetailDialog({
                     selectedLabels={storyDetail?.labels ?? []}
                     projectLabels={projectLabels}
                     onToggle={handleToggleLabel}
-                    onCreateAndToggle={handleCreateAndToggleLabel}
-                    onDelete={handleDeleteLabel}
+                    onCreateAndToggle={isAdmin ? handleCreateAndToggleLabel : undefined}
+                    onDelete={isAdmin ? handleDeleteLabel : undefined}
                   />
                 </div>
 
