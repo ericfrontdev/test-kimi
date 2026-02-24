@@ -17,6 +17,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { fetcher } from "@/lib/fetcher";
 import { useProjectStore } from "@/stores/project";
+import { toast } from "sonner";
 
 interface Member {
   id: string;
@@ -76,12 +77,22 @@ export function ProjectMembersCard({ projectId }: ProjectMembersCardProps) {
               </span>
             )}
           </CardTitle>
-          {userRole !== "MEMBER" && (
-            <Button variant="ghost" size="sm" onClick={() => setShowAddDialog(true)}>
-              <UserPlus size={16} className="mr-1" />
-              Ajouter
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (userRole !== "MEMBER") {
+                setShowAddDialog(true);
+              } else {
+                toast.error("Action non autorisée", {
+                  description: "Seuls les admins et propriétaires peuvent ajouter des membres.",
+                });
+              }
+            }}
+          >
+            <UserPlus size={16} className="mr-1" />
+            Ajouter
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -130,14 +141,22 @@ export function ProjectMembersCard({ projectId }: ProjectMembersCardProps) {
                     </Select>
                   )}
 
-                  {/* Remove button — admin+ only, not for the owner */}
-                  {userRole !== "MEMBER" && !member.isOwner && (
+                  {/* Remove button — not for the owner */}
+                  {!member.isOwner && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
                       title="Retirer du projet"
-                      onClick={() => handleRemove(member.id)}
+                      onClick={() => {
+                        if (userRole !== "MEMBER") {
+                          handleRemove(member.id);
+                        } else {
+                          toast.error("Action non autorisée", {
+                            description: "Seuls les admins et propriétaires peuvent retirer des membres.",
+                          });
+                        }
+                      }}
                     >
                       <X size={13} />
                     </Button>

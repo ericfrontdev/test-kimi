@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FileText, Clock, GripVertical } from "lucide-react";
+import { FileText, Clock, GripVertical, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { CreateStoryDialog } from "./CreateStoryDialog";
+import { toast } from "sonner";
 import { ProjectInfoCard } from "./ProjectInfoCard";
 import { ProjectMembersCard } from "./ProjectMembersCard";
 import { StoryDetailDialog } from "./StoryDetailDialog";
@@ -160,12 +162,25 @@ export function DescriptionTab({
             <FileText size={18} />
             Stories
           </CardTitle>
-          {userRole !== "MEMBER" && (
+          {userRole !== "MEMBER" ? (
             <CreateStoryDialog
               projectId={projectId}
               variant="icon"
               onSuccess={onStoryCreated}
             />
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                toast.error("Action non autorisée", {
+                  description: "Seuls les admins et propriétaires peuvent créer des stories.",
+                })
+              }
+            >
+              <Plus size={16} />
+            </Button>
           )}
         </CardHeader>
         <CardContent>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Plus, Tag, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -110,74 +111,82 @@ export function LabelSelector({
                   <span className="flex-1 truncate">{label.name}</span>
                   {selected && <Check className="h-3 w-3 flex-shrink-0" />}
                 </button>
-                {onDelete && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDelete) {
                       onDelete(label.id);
-                    }}
-                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
+                    } else {
+                      toast.error("Action non autorisée", {
+                        description: "Seuls les admins et propriétaires peuvent supprimer des labels.",
+                      });
+                    }
+                  }}
+                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </div>
             );
           })}
         </div>
 
-        {onCreateAndToggle && (
-          <>
-            <Separator className="my-2" />
+        <Separator className="my-2" />
 
-            {isCreating ? (
-              <div className="space-y-2">
-                <Input
-                  placeholder="Nom du label"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="h-8 text-sm"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreate();
-                    if (e.key === "Escape") setIsCreating(false);
-                  }}
+        {onCreateAndToggle && isCreating ? (
+          <div className="space-y-2">
+            <Input
+              placeholder="Nom du label"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+                if (e.key === "Escape") setIsCreating(false);
+              }}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => setNewColor(c)}
+                  className={cn(
+                    "h-5 w-5 rounded-full border-2 transition-transform hover:scale-110",
+                    newColor === c ? "border-foreground scale-110" : "border-transparent"
+                  )}
+                  style={{ backgroundColor: c }}
                 />
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setNewColor(c)}
-                      className={cn(
-                        "h-5 w-5 rounded-full border-2 transition-transform hover:scale-110",
-                        newColor === c ? "border-foreground scale-110" : "border-transparent"
-                      )}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Button type="button" size="sm" className="h-7 text-xs flex-1" onClick={handleCreate} disabled={isSubmitting || !newName.trim()}>
-                    {isSubmitting ? "Création..." : "Créer"}
-                  </Button>
-                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsCreating(false)}>
-                    Annuler
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsCreating(true)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-muted-foreground"
-              >
-                <Plus className="h-3 w-3" />
-                Créer un label
-              </button>
-            )}
-          </>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" className="h-7 text-xs flex-1" onClick={handleCreate} disabled={isSubmitting || !newName.trim()}>
+                {isSubmitting ? "Création..." : "Créer"}
+              </Button>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsCreating(false)}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (onCreateAndToggle) {
+                setIsCreating(true);
+              } else {
+                toast.error("Action non autorisée", {
+                  description: "Seuls les admins et propriétaires peuvent créer des labels.",
+                });
+              }
+            }}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-muted-foreground"
+          >
+            <Plus className="h-3 w-3" />
+            Créer un label
+          </button>
         )}
       </PopoverContent>
     </Popover>
