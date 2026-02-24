@@ -3,13 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MoreHorizontal, Layers, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
-import useSWR from "swr";
-import { fetcher } from "@/lib/fetcher";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { EditStoryDialog } from "./EditStoryDialog";
 import { FilterSortBar, applyFiltersAndSort, DEFAULT_FILTER, DEFAULT_SORT } from "./FilterSortBar";
 import type { FilterState, SortState } from "./FilterSortBar";
-import type { ProjectUser } from "./kanban/types";
 import {
   Table,
   TableBody,
@@ -40,6 +37,8 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
   const updateStoryFields = useProjectStore((state) => state.updateStoryFields);
   const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
+  const projectUsers = useProjectStore((state) => state.projectUsers);
+  const fetchProjectUsers = useProjectStore((state) => state.fetchProjectUsers);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -47,10 +46,9 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER);
   const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
 
-  const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
-    `/api/projects/${projectId}/members`,
-    fetcher
-  );
+  useEffect(() => {
+    fetchProjectUsers(projectId);
+  }, [projectId, fetchProjectUsers]);
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);

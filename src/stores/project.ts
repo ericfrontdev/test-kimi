@@ -3,6 +3,8 @@ import type { Story, Task, TaskStatus, ProjectUser } from "@/components/project/
 
 interface ProjectState {
   projectId: string | null;
+  projectName: string | null;
+  projectDescription: string | null;
   stories: Story[];
   hasMoreStories: boolean;
   isLoadingMore: boolean;
@@ -14,7 +16,15 @@ interface ProjectState {
   loadingTasks: Set<string>;
   projectUsers: ProjectUser[];
 
-  setProject: (projectId: string, stories: Story[], hasMoreStories?: boolean, userRole?: "OWNER" | "ADMIN" | "MEMBER") => void;
+  setProject: (
+    projectId: string,
+    stories: Story[],
+    hasMoreStories?: boolean,
+    userRole?: "OWNER" | "ADMIN" | "MEMBER",
+    projectName?: string | null,
+    projectDescription?: string | null
+  ) => void;
+  updateProjectMeta: (name: string, description: string | null) => void;
   addStory: (story: Story) => void;
   removeStory: (storyId: string) => void;
   appendStories: (stories: Story[], hasMore: boolean) => void;
@@ -46,6 +56,8 @@ interface ProjectState {
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projectId: null,
+  projectName: null,
+  projectDescription: null,
   stories: [],
   hasMoreStories: false,
   isLoadingMore: false,
@@ -56,9 +68,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadingTasks: new Set(),
   projectUsers: [],
 
-  setProject: (projectId, stories, hasMoreStories = false, userRole = "MEMBER") =>
+  setProject: (projectId, stories, hasMoreStories = false, userRole = "MEMBER", projectName = null, projectDescription = null) =>
     set({
       projectId,
+      projectName,
+      projectDescription,
       stories,
       hasMoreStories,
       userRole,
@@ -67,6 +81,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       loadingTasks: new Set(),
       projectUsers: [],
     }),
+
+  updateProjectMeta: (name, description) =>
+    set({ projectName: name, projectDescription: description }),
 
   addStory: (story) =>
     set((state) => ({ stories: [story, ...state.stories] })),

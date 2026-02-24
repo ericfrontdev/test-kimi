@@ -5,7 +5,6 @@ import { FileText, Clock, GripVertical, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateStoryDialog } from "./CreateStoryDialog";
-import { toast } from "sonner";
 import { ProjectInfoCard } from "./ProjectInfoCard";
 import { ProjectMembersCard } from "./ProjectMembersCard";
 import { StoryDetailDialog } from "./StoryDetailDialog";
@@ -33,24 +32,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useProjectStore } from "@/stores/project";
+import { toast } from "sonner";
 import type { Story } from "./kanban/types";
 
-interface DescriptionTabProps {
-  project: {
-    name: string;
-    description: string | null;
-  };
-  projectId: string;
-  onStoryCreated?: () => void;
-  userRole?: "OWNER" | "ADMIN" | "MEMBER";
-}
-
-export function DescriptionTab({
-  project,
-  projectId,
-  onStoryCreated,
-  userRole,
-}: DescriptionTabProps) {
+export function DescriptionTab() {
+  const projectId = useProjectStore((s) => s.projectId) ?? "";
+  const userRole = useProjectStore((s) => s.userRole);
   const storeStories = useProjectStore((state) => state.stories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
 
@@ -148,11 +135,7 @@ export function DescriptionTab({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <ProjectInfoCard
-          projectId={projectId}
-          name={project.name}
-          description={project.description}
-        />
+        <ProjectInfoCard />
         <ProjectMembersCard projectId={projectId} />
       </div>
 
@@ -163,11 +146,7 @@ export function DescriptionTab({
             Stories
           </CardTitle>
           {userRole !== "MEMBER" ? (
-            <CreateStoryDialog
-              projectId={projectId}
-              variant="icon"
-              onSuccess={onStoryCreated}
-            />
+            <CreateStoryDialog projectId={projectId} variant="icon" />
           ) : (
             <Button
               variant="ghost"

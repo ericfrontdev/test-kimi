@@ -36,7 +36,7 @@ interface ProjectPageClientProps {
 }
 
 // Isolated component so useSearchParams is inside a Suspense boundary
-function ProjectTabs({ project, onStoryCreated, userRole }: { project: Project; onStoryCreated: () => void; userRole: "OWNER" | "ADMIN" | "MEMBER" }) {
+function ProjectTabs({ project }: { project: Project }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -59,12 +59,7 @@ function ProjectTabs({ project, onStoryCreated, userRole }: { project: Project; 
       </TabsList>
 
       <TabsContent value="description" className="mt-6">
-        <DescriptionTab
-          project={{ name: project.name, description: project.description }}
-          projectId={project.id}
-          onStoryCreated={onStoryCreated}
-          userRole={userRole}
-        />
+        <DescriptionTab />
       </TabsContent>
 
       <TabsContent value="backlog" className="mt-6">
@@ -83,16 +78,11 @@ function ProjectTabs({ project, onStoryCreated, userRole }: { project: Project; 
 }
 
 export function ProjectPageClient({ project, stories: initialStories, hasMoreStories, userRole }: ProjectPageClientProps) {
-  const router = useRouter();
   const setProject = useProjectStore((state) => state.setProject);
 
   useEffect(() => {
-    setProject(project.id, initialStories, hasMoreStories, userRole);
-  }, [project.id, initialStories, hasMoreStories, userRole, setProject]);
-
-  function handleStoryCreated() {
-    router.refresh();
-  }
+    setProject(project.id, initialStories, hasMoreStories, userRole, project.name, project.description ?? null);
+  }, [project.id, project.name, project.description, initialStories, hasMoreStories, userRole, setProject]);
 
   return (
     <div className="space-y-6">
@@ -100,11 +90,7 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{project.name}</h1>
         {userRole !== "MEMBER" ? (
-          <CreateStoryDialog
-            projectId={project.id}
-            variant="button"
-            onSuccess={handleStoryCreated}
-          />
+          <CreateStoryDialog projectId={project.id} variant="button" />
         ) : (
           <Button
             className="gap-2"
@@ -131,7 +117,7 @@ export function ProjectPageClient({ project, stories: initialStories, hasMoreSto
           </TabsList>
         </Tabs>
       }>
-        <ProjectTabs project={project} onStoryCreated={handleStoryCreated} userRole={userRole} />
+        <ProjectTabs project={project} />
       </Suspense>
     </div>
   );

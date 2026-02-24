@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, CheckSquare, Link2, Paperclip, ListChecks, GitBranch, Clock, User, Flag, Calendar, Tag, FolderOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +62,7 @@ export function CreateStoryDialog({
   variant = "button",
   onSuccess,
 }: CreateStoryDialogProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -171,6 +173,7 @@ export function CreateStoryDialog({
         setOpen(false);
       }
       
+      router.refresh();
       onSuccess?.();
     } catch (err) {
       setError((err as Error).message);

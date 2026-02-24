@@ -7,15 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { useProjectStore } from "@/stores/project";
 
-interface ProjectInfoCardProps {
-  projectId: string;
-  name: string;
-  description: string | null;
-}
-
-export function ProjectInfoCard({ projectId, name, description }: ProjectInfoCardProps) {
+export function ProjectInfoCard() {
   const router = useRouter();
+  const projectId = useProjectStore((s) => s.projectId) ?? "";
+  const name = useProjectStore((s) => s.projectName) ?? "";
+  const description = useProjectStore((s) => s.projectDescription);
+  const updateProjectMeta = useProjectStore((s) => s.updateProjectMeta);
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -36,6 +36,7 @@ export function ProjectInfoCard({ projectId, name, description }: ProjectInfoCar
       });
 
       if (response.ok) {
+        updateProjectMeta(editName.trim(), editDescription.trim() || null);
         setIsEditing(false);
         router.refresh();
       }
@@ -60,7 +61,7 @@ export function ProjectInfoCard({ projectId, name, description }: ProjectInfoCar
           Informations du projet
         </CardTitle>
         {!isEditing && (
-          <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+          <Button variant="ghost" size="sm" onClick={() => { setEditName(name); setEditDescription(description || ""); setIsEditing(true); }}>
             <Pencil size={16} className="mr-1" />
             Modifier
           </Button>
