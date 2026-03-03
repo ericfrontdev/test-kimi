@@ -4,6 +4,7 @@ import { ProjectPageClient } from "@/components/project/ProjectPageClient";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserExists } from "@/lib/ensure-user-exists";
+import type { ProjectList } from "@/stores/project-list";
 
 interface ProjectPageProps {
   params: Promise<{ id: string }>;
@@ -30,7 +31,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const INITIAL_TAKE = 100;
 
-  const [project, totalNonArchived, membership] = await Promise.all([
+  const [project, membership] = await Promise.all([
     prisma.project.findFirst({
       where: {
         id,
@@ -39,24 +40,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           { members: { some: { userId: user.id } } },
         ],
       },
-      include: {
-        stories: {
-          where: { status: { not: "ARCHIVED" } },
-          include: {
-            tasks: {
-              select: { id: true, status: true },
-            },
-            assignee: {
-              select: { name: true, email: true },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          take: INITIAL_TAKE,
-        },
-      },
-    }),
-    prisma.story.count({
-      where: { projectId: id, status: { not: "ARCHIVED" } },
     }),
     prisma.projectMember.findFirst({
       where: { projectId: id, userId: user.id },
@@ -75,7 +58,58 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       ? "ADMIN"
       : "MEMBER";
 
-  const formattedStories = project.stories.map((story) => ({
+  if (project.type === "LIST") {
+    // Load lists for list-based project
+    const [rawLists, totalNonArchived] = await Promise.all([
+      prisma.projectList.findMany({
+        where: { projectId: id, status: { not: "ARCHIVED" } },
+        include: {
+          assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          items: { select: { id: true, status: true }, orderBy: { position: "asc" } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: INITIAL_TAKE,
+      }),
+      prisma.projectList.count({ where: { projectId: id, status: { not: "ARCHIVED" } } }),
+    ]);
+
+    const lists = rawLists.map((l) => ({
+      ...l,
+      createdAt: l.createdAt.toISOString(),
+      updatedAt: l.updatedAt.toISOString(),
+      items: l.items.map((i) => ({ id: i.id, status: i.status as "TODO" | "DONE" })),
+    })) as ProjectList[];
+
+    return (
+      <MainLayout>
+        <ProjectPageClient
+          project={{ id: project.id, name: project.name, description: project.description }}
+          projectType="LIST"
+          stories={[]}
+          hasMoreStories={false}
+          lists={lists}
+          hasMoreLists={totalNonArchived > INITIAL_TAKE}
+          userRole={userRole}
+        />
+      </MainLayout>
+    );
+  }
+
+  // STORY project — original flow
+  const [rawStories, totalNonArchived] = await Promise.all([
+    prisma.story.findMany({
+      where: { projectId: id, status: { not: "ARCHIVED" } },
+      include: {
+        tasks: { select: { id: true, status: true } },
+        assignee: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: INITIAL_TAKE,
+    }),
+    prisma.story.count({ where: { projectId: id, status: { not: "ARCHIVED" } } }),
+  ]);
+
+  const formattedStories = rawStories.map((story) => ({
     id: story.id,
     storyNumber: story.storyNumber,
     title: story.title,
@@ -88,14 +122,15 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     assignee: story.assignee,
   }));
 
-  const hasMoreStories = totalNonArchived > INITIAL_TAKE;
-
   return (
     <MainLayout>
       <ProjectPageClient
         project={{ id: project.id, name: project.name, description: project.description }}
+        projectType="STORY"
         stories={formattedStories}
-        hasMoreStories={hasMoreStories}
+        hasMoreStories={totalNonArchived > INITIAL_TAKE}
+        lists={[]}
+        hasMoreLists={false}
         userRole={userRole}
       />
     </MainLayout>

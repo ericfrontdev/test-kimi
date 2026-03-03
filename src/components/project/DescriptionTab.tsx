@@ -32,12 +32,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useProjectStore } from "@/stores/project";
+import { useProjectListStore } from "@/stores/project-list";
 import type { Story } from "./kanban/types";
 
 export function DescriptionTab() {
   const projectId = useProjectStore((s) => s.projectId) ?? "";
+  const projectType = useProjectStore((s) => s.projectType);
   const storeStories = useProjectStore((state) => state.stories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
+  const storeLists = useProjectListStore((s) => s.lists);
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -137,56 +140,89 @@ export function DescriptionTab() {
         <ProjectMembersCard projectId={projectId} />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText size={18} />
-            Stories
-          </CardTitle>
-          <CreateStoryDialog projectId={projectId} variant="icon" />
-        </CardHeader>
-        <CardContent>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Backlog Column */}
-              <Column
-                id="backlog"
-                title="Backlog"
-                icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-                stories={backlogStories}
-                onStoryClick={setSelectedStory}
-              />
+      {projectType === "LIST" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText size={18} />
+              Listes
+              <span className="text-sm font-normal text-muted-foreground ml-1">
+                ({storeLists.filter((l) => l.status !== "ARCHIVED").length})
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {storeLists.filter((l) => l.status !== "ARCHIVED").length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Aucune liste. Cliquez sur "Créer une liste" pour commencer.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {storeLists.filter((l) => l.status !== "ARCHIVED").slice(0, 10).map((list) => (
+                  <div key={list.id} className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
+                    <span className="text-xs text-muted-foreground font-mono shrink-0">LIST-{list.listNumber}</span>
+                    <span className="truncate flex-1">{list.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {list.items.filter((i) => i.status === "DONE").length}/{list.items.length}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText size={18} />
+              Stories
+            </CardTitle>
+            <CreateStoryDialog projectId={projectId} variant="icon" />
+          </CardHeader>
+          <CardContent>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Backlog Column */}
+                <Column
+                  id="backlog"
+                  title="Backlog"
+                  icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+                  stories={backlogStories}
+                  onStoryClick={setSelectedStory}
+                />
 
-              {/* Board Column */}
-              <Column
-                id="board"
-                title="Dans le tableau"
-                icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-                stories={boardStories}
-                onStoryClick={setSelectedStory}
-              />
-            </div>
+                {/* Board Column */}
+                <Column
+                  id="board"
+                  title="Dans le tableau"
+                  icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+                  stories={boardStories}
+                  onStoryClick={setSelectedStory}
+                />
+              </div>
 
-            <DragOverlay dropAnimation={dropAnimation}>
-              {activeStory ? (
-                <StoryCard story={activeStory} isOverlay />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+              <DragOverlay dropAnimation={dropAnimation}>
+                {activeStory ? (
+                  <StoryCard story={activeStory} isOverlay />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
 
-          {storeStories.length === 0 && (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              Aucune story. Cliquez sur le bouton + pour en créer une.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            {storeStories.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Aucune story. Cliquez sur le bouton + pour en créer une.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <StoryDetailDialog
         story={selectedStory}
