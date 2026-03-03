@@ -507,9 +507,14 @@ export function StoryDetailDialog({
         body: JSON.stringify({ title: newSubtaskTitle.trim() }),
       });
       if (response.ok) {
+        const newTask: Task = await response.json();
+        // Optimistic update: add task immediately without waiting for revalidation
+        mutateStory(
+          { ...storyDetail, tasks: [...storyDetail.tasks, newTask] },
+          false
+        );
         setNewSubtaskTitle("");
         setIsAddingSubtask(false);
-        mutateStory(); // Revalidate to get new task
       }
     } catch {
       // silently fail — user can retry
@@ -760,7 +765,7 @@ export function StoryDetailDialog({
                       </div>
                     </div>
                   ))}
-                  {(!storyDetail?.tasks || storyDetail.tasks.length === 0) && (
+                  {storyDetail && storyDetail.tasks.length === 0 && (
                     <p className="text-sm text-muted-foreground italic py-2">
                       Aucune sous-tâche
                     </p>
