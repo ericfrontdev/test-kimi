@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, CheckSquare, Link2, Paperclip, ListChecks, GitBranch, Clock, User, Flag, Calendar, Tag, FolderOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { cn, getInitials } from "@/lib/utils";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
+import { Loader2 } from "lucide-react";
 import type { ProjectUser, Label } from "@/components/project/kanban/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LabelSelector } from "@/components/project/LabelSelector";
@@ -35,6 +36,10 @@ interface CreateStoryDialogProps {
   projectId: string;
   variant?: "button" | "icon";
   onSuccess?: () => void;
+  // Edit mode — when provided the dialog is controlled externally
+  storyId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const statusOptions = [
@@ -61,9 +66,17 @@ export function CreateStoryDialog({
   projectId,
   variant = "button",
   onSuccess,
+  storyId,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
 }: CreateStoryDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const isEditMode = !!storyId;
+
+  const [openInternal, setOpenInternal] = useState(false);
+  const dialogOpen = isEditMode ? (openProp ?? false) : openInternal;
+  const setDialogOpen = isEditMode ? (onOpenChangeProp ?? (() => {})) : setOpenInternal;
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("BACKLOG");
@@ -72,6 +85,7 @@ export function CreateStoryDialog({
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
+  const [originalLabels, setOriginalLabels] = useState<Label[]>([]);
   const [showChecklist, setShowChecklist] = useState(false);
   const [localChecklistItems, setLocalChecklistItems] = useState<{ id: string; title: string; status: "TODO" | "IN_PROGRESS" | "DONE" }[]>([]);
   const [isAddingLocalItem, setIsAddingLocalItem] = useState(false);
@@ -80,17 +94,57 @@ export function CreateStoryDialog({
   const [error, setError] = useState<string | null>(null);
   const [createAnother, setCreateAnother] = useState(false);
 
+  // Fetch story data when in edit mode
+  const { data: editStoryData, isLoading: isLoadingStory } = useSWR<{
+    id: string; title: string; description?: string | null; status: string;
+    type: "FEATURE" | "FIX"; priority: number; assigneeId?: string | null;
+    dueDate?: string | null; labels?: Label[];
+  }>(
+    isEditMode && dialogOpen ? `/api/projects/${projectId}/stories/${storyId}` : null,
+    fetcher
+  );
+
+  // Populate form fields when story data loads
+  useEffect(() => {
+    if (editStoryData && isEditMode) {
+      setTitle(editStoryData.title);
+      setDescription(editStoryData.description ?? "");
+      setStatus(editStoryData.status);
+      setType(editStoryData.type);
+      setPriority(editStoryData.priority);
+      setAssigneeId(editStoryData.assigneeId ?? null);
+      setDueDate(editStoryData.dueDate ? new Date(editStoryData.dueDate) : null);
+      setSelectedLabels(editStoryData.labels ?? []);
+      setOriginalLabels(editStoryData.labels ?? []);
+    }
+  }, [editStoryData, isEditMode]);
+
   const isAdmin = useProjectStore((s) => s.userRole) !== "MEMBER";
 
   const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
-    open ? `/api/projects/${projectId}/members` : null,
+    dialogOpen ? `/api/projects/${projectId}/members` : null,
     fetcher
   );
 
   const { data: projectLabels = [], mutate: mutateLabels } = useSWR<Label[]>(
-    open ? `/api/projects/${projectId}/labels` : null,
+    dialogOpen ? `/api/projects/${projectId}/labels` : null,
     fetcher
   );
+
+  function resetForm() {
+    setTitle("");
+    setDescription("");
+    setStatus("BACKLOG");
+    setType("FEATURE");
+    setPriority(2);
+    setAssigneeId(null);
+    setDueDate(null);
+    setSelectedLabels([]);
+    setOriginalLabels([]);
+    setShowChecklist(false);
+    setLocalChecklistItems([]);
+    setError(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,76 +157,95 @@ export function CreateStoryDialog({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/projects/${projectId}/stories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          status,
-          type,
-          priority,
-          assigneeId: assigneeId ?? undefined,
-          dueDate: dueDate?.toISOString() ?? undefined,
-          labelIds: selectedLabels.map((l) => l.id),
-        }),
-      });
+      if (isEditMode && storyId) {
+        // ── Edit mode: PATCH story fields ──
+        const res = await fetch(`/api/projects/${projectId}/stories/${storyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim() || null,
+            status,
+            priority,
+            assignee: assigneeId,
+            dueDate: dueDate?.toISOString() ?? null,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Échec de la mise à jour");
+        }
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Échec de la création");
-      }
+        // Sync labels: toggle any label that changed
+        const labelsToSync = [
+          ...selectedLabels.filter((l) => !originalLabels.find((ol) => ol.id === l.id)),
+          ...originalLabels.filter((ol) => !selectedLabels.find((l) => l.id === ol.id)),
+        ];
+        await Promise.all(
+          labelsToSync.map((label) =>
+            fetch(`/api/projects/${projectId}/stories/${storyId}/labels`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ labelId: label.id }),
+            })
+          )
+        );
 
-      const storyData = await response.json();
-
-      // Create checklist with local items if any
-      if (localChecklistItems.length > 0) {
-        const clRes = await fetch(`/api/projects/${projectId}/stories/${storyData.id}/checklists`, {
+        setDialogOpen(false);
+        resetForm();
+      } else {
+        // ── Create mode: POST ──
+        const response = await fetch(`/api/projects/${projectId}/stories`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim() || undefined,
+            status,
+            type,
+            priority,
+            assigneeId: assigneeId ?? undefined,
+            dueDate: dueDate?.toISOString() ?? undefined,
+            labelIds: selectedLabels.map((l) => l.id),
+          }),
         });
-        if (clRes.ok) {
-          const checklist = await clRes.json();
-          await Promise.all(
-            localChecklistItems.map((item) =>
-              fetch(`/api/projects/${projectId}/stories/${storyData.id}/checklists/${checklist.id}/items`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title: item.title, status: item.status }),
-              })
-            )
-          );
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Échec de la création");
+        }
+
+        const storyData = await response.json();
+
+        // Create checklist with local items if any
+        if (localChecklistItems.length > 0) {
+          const clRes = await fetch(`/api/projects/${projectId}/stories/${storyData.id}/checklists`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          if (clRes.ok) {
+            const checklist = await clRes.json();
+            await Promise.all(
+              localChecklistItems.map((item) =>
+                fetch(`/api/projects/${projectId}/stories/${storyData.id}/checklists/${checklist.id}/items`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ title: item.title, status: item.status }),
+                })
+              )
+            );
+          }
+        }
+
+        if (createAnother) {
+          resetForm();
+        } else {
+          resetForm();
+          setDialogOpen(false);
         }
       }
 
-      if (createAnother) {
-        // Reset form but keep dialog open
-        setTitle("");
-        setDescription("");
-        setStatus("BACKLOG");
-        setType("FEATURE");
-        setPriority(2);
-        setAssigneeId(null);
-        setDueDate(null);
-        setSelectedLabels([]);
-        setShowChecklist(false);
-        setLocalChecklistItems([]);
-      } else {
-        // Close dialog and reset
-        setTitle("");
-        setDescription("");
-        setStatus("BACKLOG");
-        setType("FEATURE");
-        setPriority(2);
-        setAssigneeId(null);
-        setDueDate(null);
-        setSelectedLabels([]);
-        setShowChecklist(false);
-        setLocalChecklistItems([]);
-        setOpen(false);
-      }
-      
       router.refresh();
       onSuccess?.();
     } catch (err) {
@@ -183,17 +256,8 @@ export function CreateStoryDialog({
   }
 
   function handleDiscard() {
-    setTitle("");
-    setDescription("");
-    setStatus("BACKLOG");
-    setType("FEATURE");
-    setPriority(2);
-    setAssigneeId(null);
-    setDueDate(null);
-    setSelectedLabels([]);
-    setShowChecklist(false);
-    setLocalChecklistItems([]);
-    setOpen(false);
+    resetForm();
+    setDialogOpen(false);
   }
 
   function handleToggleLabel(label: Label) {
@@ -229,28 +293,36 @@ export function CreateStoryDialog({
   const currentAssignee = projectUsers.find((u) => u.id === assigneeId);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {variant === "button" ? (
-          <Button className="gap-2">
-            <Plus size={16} />
-            Créer une Story
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Plus size={16} />
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!isEditMode && (
+        <DialogTrigger asChild>
+          {variant === "button" ? (
+            <Button className="gap-2">
+              <Plus size={16} />
+              Créer une Story
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Plus size={16} />
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="!max-w-none w-[60vw] h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="text-lg font-semibold">
-            Créer une Story
+            {isEditMode ? "Modifier la Story" : "Créer une Story"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+        {isEditMode && isLoadingStory ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit} className={cn("flex flex-col flex-1 overflow-hidden", isEditMode && isLoadingStory && "hidden")}>
           <div className="flex flex-1 overflow-hidden">
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -447,22 +519,29 @@ export function CreateStoryDialog({
                   <Tag className="h-3 w-3" />
                   Type
                 </label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start h-auto py-1.5 px-2 -ml-2 font-normal">
-                      <span className="mr-2">{currentType?.icon}</span>
-                      {currentType?.label}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    {typeOptions.map((t) => (
-                      <DropdownMenuItem key={t.id} onClick={() => setType(t.id as "FEATURE" | "FIX")}>
-                        <span className="mr-2">{t.icon}</span>
-                        {t.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {isEditMode ? (
+                  <div className="flex items-center py-1.5 px-2 text-sm text-muted-foreground">
+                    <span className="mr-2">{currentType?.icon}</span>
+                    {currentType?.label}
+                  </div>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start h-auto py-1.5 px-2 -ml-2 font-normal">
+                        <span className="mr-2">{currentType?.icon}</span>
+                        {currentType?.label}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      {typeOptions.map((t) => (
+                        <DropdownMenuItem key={t.id} onClick={() => setType(t.id as "FEATURE" | "FIX")}>
+                          <span className="mr-2">{t.icon}</span>
+                          {t.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
 
               {/* Priority */}
@@ -586,20 +665,24 @@ export function CreateStoryDialog({
                 onClick={handleDiscard}
                 disabled={isLoading}
               >
-                Annuler le brouillon
+                {isEditMode ? "Annuler" : "Annuler le brouillon"}
               </Button>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={createAnother}
-                    onChange={(e) => setCreateAnother(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  Créer une autre
-                </label>
+                {!isEditMode && (
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={createAnother}
+                      onChange={(e) => setCreateAnother(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Créer une autre
+                  </label>
+                )}
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Création..." : "Créer une Story"}
+                  {isLoading
+                    ? isEditMode ? "Enregistrement..." : "Création..."
+                    : isEditMode ? "Enregistrer" : "Créer la Story"}
                 </Button>
               </div>
             </div>
