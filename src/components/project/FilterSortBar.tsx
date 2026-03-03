@@ -154,7 +154,7 @@ export function FilterSortBar({
               <DropdownMenuSeparator />
               <button
                 onClick={resetFilters}
-                className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+                className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" />
                 Réinitialiser les filtres

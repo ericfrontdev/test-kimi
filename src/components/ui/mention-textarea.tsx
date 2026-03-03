@@ -145,7 +145,7 @@ export function MentionTextarea({
                 key={user.id}
                 onClick={() => insertMention(user)}
                 className={cn(
-                  "w-full px-2 py-1.5 flex items-center gap-2 text-left text-sm hover:bg-accent transition-colors",
+                  "w-full px-2 py-1.5 flex items-center gap-2 text-left text-sm hover:bg-accent transition-colors cursor-pointer",
                   index === mentionIndex && "bg-accent"
                 )}
               >

@@ -27,7 +27,7 @@ export function ProjectTabs({ children, defaultTab = "description" }: ProjectTab
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative pb-3 text-sm font-medium transition-colors",
+                "relative pb-3 text-sm font-medium transition-colors cursor-pointer",
                 activeTab === tab.id
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
