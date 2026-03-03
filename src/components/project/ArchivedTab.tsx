@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { useProjectStore } from "@/stores/project";
+import { toast } from "sonner";
 import type { Story } from "./kanban/types";
 
 interface ArchivedTabProps {
@@ -63,6 +64,8 @@ function getStatusLabel(status: string) {
 export function ArchivedTab({ projectId }: ArchivedTabProps) {
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
   const removeStory = useProjectStore((state) => state.removeStory);
+  const userRole = useProjectStore((state) => state.userRole);
+  const isAdmin = userRole !== "MEMBER";
 
   const [archivedStories, setArchivedStories] = useState<Story[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -110,147 +113,149 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
         { method: "DELETE" }
       );
       if (response.ok) {
+        setStoryToDelete(null);
         removeStory(storyId);
         setArchivedStories((prev) => prev.filter((s) => s.id !== storyId));
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error ?? "Échec de la suppression");
         setStoryToDelete(null);
       }
     } catch {
-      // silently fail
+      toast.error("Erreur réseau lors de la suppression");
+      setStoryToDelete(null);
     } finally {
       setIsDeleting(false);
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (archivedStories.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <ArchiveRestore className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium">Aucune story archivée</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Les stories archivées apparaîtront ici
-        </p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold">
-            Stories archivées
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              ({archivedStories.length})
-            </span>
-          </h3>
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : archivedStories.length === 0 ? (
+        <div className="text-center py-12">
+          <ArchiveRestore className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium">Aucune story archivée</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Les stories archivées apparaîtront ici
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold">
+              Stories archivées
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({archivedStories.length})
+              </span>
+            </h3>
+          </div>
 
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/60 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold">ID</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Titre</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Statut</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Sous-tâches</th>
-                <th className="w-16 px-4 py-3 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {archivedStories.map((story) => (
-                <tr
-                  key={story.id}
-                  className="bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
-                  onClick={() => setSelectedStory(story)}
-                >
-                  <td className="px-4 py-3">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {story.type}-{story.storyNumber}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm line-through text-muted-foreground">
-                      {story.title}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="outline"
-                      className={`${getStatusBadgeClass(story.status)} font-normal`}
-                    >
-                      {getStatusLabel(story.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {story.subtasks > 0 ? (
-                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Layers size={14} />
-                        <span>
-                          {story.completedSubtasks}/{story.subtasks}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal size={16} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUnarchive(story.id);
-                          }}
-                        >
-                          <ArchiveRestore className="h-4 w-4 mr-2" />
-                          Restaurer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setStoryToDelete(story);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer définitivement
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-muted/60 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">ID</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Titre</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Statut</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Sous-tâches</th>
+                  <th className="w-16 px-4 py-3 text-right"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y">
+                {archivedStories.map((story) => (
+                  <tr
+                    key={story.id}
+                    className="bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => setSelectedStory(story)}
+                  >
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {story.type}-{story.storyNumber}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm line-through text-muted-foreground">
+                        {story.title}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant="outline"
+                        className={`${getStatusBadgeClass(story.status)} font-normal`}
+                      >
+                        {getStatusLabel(story.status)}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {story.subtasks > 0 ? (
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Layers size={14} />
+                          <span>
+                            {story.completedSubtasks}/{story.subtasks}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUnarchive(story.id);
+                            }}
+                          >
+                            <ArchiveRestore className="h-4 w-4 mr-2" />
+                            Restaurer
+                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStoryToDelete(story);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Supprimer définitivement
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {hasMore && (
-        <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            onClick={handleLoadMore}
-            disabled={isLoadingMore}
-          >
-            {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Charger plus
-          </Button>
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <Button
+                variant="outline"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Charger plus
+              </Button>
+            </div>
+          )}
         </div>
       )}
-      </div>
 
+      {/* Dialogs always mounted — prevents Radix focus-trap leak on last-story deletion */}
       <Dialog open={!!storyToDelete} onOpenChange={(open) => !open && setStoryToDelete(null)}>
         <DialogContent>
           <DialogHeader>
