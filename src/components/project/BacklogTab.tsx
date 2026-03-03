@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MoreHorizontal, Layers, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { StoryDetailDialog } from "./StoryDetailDialog";
-import { EditStoryDialog } from "./EditStoryDialog";
+import { CreateStoryDialog } from "./CreateStoryDialog";
 import { FilterSortBar, applyFiltersAndSort, DEFAULT_FILTER, DEFAULT_SORT } from "./FilterSortBar";
 import type { FilterState, SortState } from "./FilterSortBar";
 import {
@@ -35,8 +35,7 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
   const hasMoreStories = useProjectStore((state) => state.hasMoreStories);
   const isLoadingMore = useProjectStore((state) => state.isLoadingMore);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
-  const updateStoryFields = useProjectStore((state) => state.updateStoryFields);
-  const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
+const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
   const projectUsers = useProjectStore((state) => state.projectUsers);
   const fetchProjectUsers = useProjectStore((state) => state.fetchProjectUsers);
 
@@ -89,11 +88,6 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
   function handleEdit(story: Story) {
     setSelectedStory(story);
     setIsEditOpen(true);
-  }
-
-  function handleSaveEdit(storyId: string, data: { title: string; description: string; status: string }) {
-    updateStoryFields(storyId, data);
-    setIsEditOpen(false);
   }
 
   return (
@@ -293,12 +287,14 @@ export function BacklogTab({ projectId }: BacklogTabProps) {
       />
 
       {/* Edit Story Dialog */}
-      <EditStoryDialog
-        story={selectedStory}
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        onSave={handleSaveEdit}
-      />
+      {selectedStory && (
+        <CreateStoryDialog
+          projectId={projectId}
+          storyId={selectedStory.id}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+        />
+      )}
     </div>
   );
 }
