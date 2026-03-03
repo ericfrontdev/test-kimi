@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, CheckSquare, Link2, Paperclip, ListChecks, GitBranch, Clock, User, Flag, Calendar, Tag, X, Circle, Check, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, CheckSquare, Link2, Paperclip, ListChecks, Clock, User, Flag, Calendar, Tag, X, Circle, Check, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -678,10 +678,6 @@ export function CreateStoryDialog({
                   >
                     <ListChecks className="h-3 w-3 mr-1" />
                     Checklist
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
-                    <GitBranch className="h-3 w-3 mr-1" />
-                    Relationships
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
                     <Link2 className="h-3 w-3 mr-1" />
