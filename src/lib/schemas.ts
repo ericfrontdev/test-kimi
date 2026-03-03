@@ -138,6 +138,17 @@ export const createTaskCommentSchema = z.object({
   mentions: z.array(z.string()).optional().default([]),
 });
 
+// ─── Story Links ──────────────────────────────────────────────────────────────
+
+export const createStoryLinkSchema = z.object({
+  title: z
+    .string({ error: "Le titre est requis" })
+    .min(1, "Le titre est requis")
+    .max(200, "Le titre ne peut pas dépasser 200 caractères")
+    .trim(),
+  url: z.string().url("URL invalide").max(2000),
+});
+
 // ─── Invitations ──────────────────────────────────────────────────────────────
 
 export const createInvitationsSchema = z.object({

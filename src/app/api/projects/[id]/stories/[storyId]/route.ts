@@ -78,6 +78,9 @@ export async function GET(
             items: { orderBy: { position: "asc" } },
           },
         },
+        links: {
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 

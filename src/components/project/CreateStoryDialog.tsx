@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, CheckSquare, Link2, Paperclip, ListChecks, Clock, User, Flag, Calendar, Tag, X, Circle, Check, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, CheckSquare, Link2, Paperclip, ListChecks, Clock, User, Flag, Calendar, Tag, X, Circle, Check, MoreHorizontal, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -99,6 +99,13 @@ export function CreateStoryDialog({
   }[]>([]);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  // Links — local list for create mode, live API for edit mode
+  const [showLinks, setShowLinks] = useState(false);
+  const [localLinks, setLocalLinks] = useState<{ id: string; title: string; url: string }[]>([]);
+  const [editLinks, setEditLinks] = useState<{ id: string; title: string; url: string }[]>([]);
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [newLinkTitle, setNewLinkTitle] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createAnother, setCreateAnother] = useState(false);
@@ -109,6 +116,7 @@ export function CreateStoryDialog({
     type: "FEATURE" | "FIX"; priority: number; assigneeId?: string | null;
     dueDate?: string | null; labels?: Label[];
     tasks?: { id: string; taskNumber: number; title: string; status: string }[];
+    links?: { id: string; title: string; url: string }[];
   }>(
     isEditMode && dialogOpen ? `/api/projects/${projectId}/stories/${storyId}` : null,
     fetcher
@@ -127,6 +135,8 @@ export function CreateStoryDialog({
       setSelectedLabels(editStoryData.labels ?? []);
       setOriginalLabels(editStoryData.labels ?? []);
       setEditTasks(editStoryData.tasks ?? []);
+      setEditLinks(editStoryData.links ?? []);
+      if ((editStoryData.links ?? []).length > 0) setShowLinks(true);
     }
   }, [editStoryData, isEditMode]);
 
@@ -158,6 +168,12 @@ export function CreateStoryDialog({
     setEditTasks([]);
     setIsAddingSubtask(false);
     setNewSubtaskTitle("");
+    setShowLinks(false);
+    setLocalLinks([]);
+    setEditLinks([]);
+    setIsAddingLink(false);
+    setNewLinkTitle("");
+    setNewLinkUrl("");
     setError(null);
   }
 
@@ -240,6 +256,17 @@ export function CreateStoryDialog({
             body: JSON.stringify({ title: subtask.title }),
           });
         }
+
+        // Create links
+        await Promise.all(
+          localLinks.map((link) =>
+            fetch(`/api/projects/${projectId}/stories/${storyData.id}/links`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: link.title, url: link.url }),
+            })
+          )
+        );
 
         // Create checklist with local items if any
         if (localChecklistItems.length > 0) {
@@ -363,6 +390,40 @@ export function CreateStoryDialog({
       await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${id}`, { method: "DELETE" });
     } else {
       setLocalSubtasks((prev) => prev.filter((s) => s.id !== id));
+    }
+  }
+
+  async function handleAddLink() {
+    const trimmedTitle = newLinkTitle.trim();
+    const trimmedUrl = newLinkUrl.trim();
+    if (!trimmedTitle || !trimmedUrl) return;
+
+    if (isEditMode && storyId) {
+      // Edit mode: POST immediately
+      const res = await fetch(`/api/projects/${projectId}/stories/${storyId}/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmedTitle, url: trimmedUrl }),
+      });
+      if (res.ok) {
+        const link = await res.json();
+        setEditLinks((prev) => [...prev, link]);
+      }
+    } else {
+      // Create mode: add locally
+      setLocalLinks((prev) => [...prev, { id: crypto.randomUUID(), title: trimmedTitle, url: trimmedUrl }]);
+    }
+    setNewLinkTitle("");
+    setNewLinkUrl("");
+    setIsAddingLink(false);
+  }
+
+  async function handleDeleteLink(id: string) {
+    if (isEditMode && storyId) {
+      setEditLinks((prev) => prev.filter((l) => l.id !== id));
+      await fetch(`/api/projects/${projectId}/stories/${storyId}/links/${id}`, { method: "DELETE" });
+    } else {
+      setLocalLinks((prev) => prev.filter((l) => l.id !== id));
     }
   }
 
@@ -679,9 +740,15 @@ export function CreateStoryDialog({
                     <ListChecks className="h-3 w-3 mr-1" />
                     Checklist
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn("text-xs", showLinks && "border-primary text-primary")}
+                    onClick={() => { setShowLinks((v) => !v); if (!showLinks) setIsAddingLink(false); }}
+                  >
                     <Link2 className="h-3 w-3 mr-1" />
-                    External Links
+                    Liens externes
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
                     <Paperclip className="h-3 w-3 mr-1" />
@@ -689,6 +756,96 @@ export function CreateStoryDialog({
                   </Button>
                 </div>
               </div>
+
+              {/* Liens externes Section */}
+              {showLinks && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <Link2 className="h-4 w-4" />
+                    Liens externes
+                    {(isEditMode ? editLinks : localLinks).length > 0 && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        {(isEditMode ? editLinks : localLinks).length}
+                      </span>
+                    )}
+                  </h3>
+                  <div className="space-y-1">
+                    {(isEditMode ? editLinks : localLinks).map((link) => (
+                      <div key={link.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/40 group">
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-sm text-primary hover:underline truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {link.title}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLink(link.id)}
+                          className="text-muted-foreground hover:text-destructive cursor-pointer"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {isAddingLink ? (
+                    <div className="space-y-2 pl-1">
+                      <Input
+                        autoFocus
+                        placeholder="Titre du lien..."
+                        value={newLinkTitle}
+                        onChange={(e) => setNewLinkTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") { setIsAddingLink(false); setNewLinkTitle(""); setNewLinkUrl(""); } }}
+                        className="h-8 text-sm"
+                      />
+                      <Input
+                        placeholder="https://..."
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); handleAddLink(); }
+                          if (e.key === "Escape") { setIsAddingLink(false); setNewLinkTitle(""); setNewLinkUrl(""); }
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={!newLinkTitle.trim() || !newLinkUrl.trim()}
+                          onClick={handleAddLink}
+                        >
+                          Ajouter
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => { setIsAddingLink(false); setNewLinkTitle(""); setNewLinkUrl(""); }}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground"
+                      onClick={() => setIsAddingLink(true)}
+                    >
+                      + Ajouter un lien
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {error && (
                 <p className="text-sm text-destructive">{error}</p>

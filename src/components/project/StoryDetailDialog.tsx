@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
-import { X, Edit3, Copy, Link2, CheckSquare, User, Flag, Calendar, Tag, GitBranch, MessageSquare, Clock, MoreHorizontal, Check, Circle, Loader2, FileText, FolderOpen, Archive, ArchiveRestore, CopyCheck, ListChecks, Paperclip } from "lucide-react";
+import { X, Edit3, Copy, Link2, CheckSquare, User, Flag, Calendar, Tag, GitBranch, MessageSquare, Clock, MoreHorizontal, Check, Circle, Loader2, FileText, FolderOpen, Archive, ArchiveRestore, CopyCheck, ListChecks, Paperclip, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +64,12 @@ interface Comment {
   };
 }
 
+interface StoryLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
 interface StoryDetail {
   id: string;
   storyNumber: number;
@@ -88,6 +94,7 @@ interface StoryDetail {
   dueDate?: string | null;
   labels?: Label[];
   checklists?: Checklist[];
+  links?: StoryLink[];
 }
 
 interface StoryDetailDialogProps {
@@ -170,12 +177,23 @@ export function StoryDetailDialog({
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
 
+  // External links state
+  const [showLinks, setShowLinks] = useState(false);
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [newLinkTitle, setNewLinkTitle] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+
   // Comments state
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
+
+  // Auto-show links section when story has links
+  useEffect(() => {
+    if ((storyDetail?.links ?? []).length > 0) setShowLinks(true);
+  }, [storyDetail?.links]);
 
   // Sync subtask counts to Zustand store whenever tasks change (creation, deletion, status change)
   const subtaskCount = storyDetail?.tasks.length;
@@ -303,6 +321,28 @@ export function StoryDetailDialog({
       mutateStory({ ...storyDetail, labels: storyDetail.labels?.filter((l) => l.id !== labelId) }, false);
     }
     await fetch(`/api/projects/${projectId}/labels/${labelId}`, { method: "DELETE" });
+  }
+
+  async function handleAddLink() {
+    if (!storyDetail || !newLinkTitle.trim() || !newLinkUrl.trim()) return;
+    const res = await fetch(`/api/projects/${projectId}/stories/${storyDetail.id}/links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newLinkTitle.trim(), url: newLinkUrl.trim() }),
+    });
+    if (res.ok) {
+      const link: StoryLink = await res.json();
+      mutateStory({ ...storyDetail, links: [...(storyDetail.links ?? []), link] }, false);
+      setNewLinkTitle("");
+      setNewLinkUrl("");
+      setIsAddingLink(false);
+    }
+  }
+
+  async function handleDeleteLink(linkId: string) {
+    if (!storyDetail) return;
+    mutateStory({ ...storyDetail, links: (storyDetail.links ?? []).filter((l) => l.id !== linkId) }, false);
+    await fetch(`/api/projects/${projectId}/stories/${storyDetail.id}/links/${linkId}`, { method: "DELETE" });
   }
 
   async function handleDueDateChange(date: Date | null) {
@@ -724,9 +764,16 @@ export function StoryDetailDialog({
                     <ListChecks className="h-3 w-3 mr-1" />
                     Checklist
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn("text-xs", showLinks && "border-primary text-primary")}
+                    onClick={() => { setShowLinks((v) => !v); if (!showLinks) setIsAddingLink(false); }}
+                    disabled={!storyDetail}
+                  >
                     <Link2 className="h-3 w-3 mr-1" />
-                    External Links
+                    Liens externes
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="text-xs" disabled>
                     <Paperclip className="h-3 w-3 mr-1" />
@@ -734,6 +781,92 @@ export function StoryDetailDialog({
                   </Button>
                 </div>
               </div>
+
+              {/* Liens externes Section */}
+              {showLinks && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <Link2 className="h-4 w-4" />
+                    Liens externes
+                    {(storyDetail?.links ?? []).length > 0 && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        {(storyDetail?.links ?? []).length}
+                      </span>
+                    )}
+                  </h3>
+                  <div className="space-y-1">
+                    {(storyDetail?.links ?? []).map((link) => (
+                      <div key={link.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/40 group">
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-sm text-primary hover:underline truncate"
+                        >
+                          {link.title}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLink(link.id)}
+                          className="text-muted-foreground hover:text-destructive cursor-pointer"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {isAddingLink ? (
+                    <div className="space-y-2 pl-1">
+                      <Input
+                        autoFocus
+                        placeholder="Titre du lien..."
+                        value={newLinkTitle}
+                        onChange={(e) => setNewLinkTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") { setIsAddingLink(false); setNewLinkTitle(""); setNewLinkUrl(""); } }}
+                        className="h-8 text-sm"
+                      />
+                      <Input
+                        placeholder="https://..."
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddLink();
+                          if (e.key === "Escape") { setIsAddingLink(false); setNewLinkTitle(""); setNewLinkUrl(""); }
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={!newLinkTitle.trim() || !newLinkUrl.trim()}
+                          onClick={handleAddLink}
+                        >
+                          Ajouter
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => { setIsAddingLink(false); setNewLinkTitle(""); setNewLinkUrl(""); }}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground"
+                      onClick={() => setIsAddingLink(true)}
+                    >
+                      + Ajouter un lien
+                    </Button>
+                  )}
+                </div>
+              )}
 
               <Separator />
 

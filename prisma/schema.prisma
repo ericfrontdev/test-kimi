@@ -150,6 +150,7 @@ model Story {
   comments    Comment[]
   labels      Label[]
   checklists  Checklist[]
+  links       StoryLink[]
   
   @@unique([projectId, storyNumber])
   @@index([projectId, status, createdAt(sort: Desc)])
@@ -188,6 +189,18 @@ model Label {
 
   @@unique([projectId, name])
   @@map("labels")
+}
+
+model StoryLink {
+  id        String   @id @default(uuid())
+  title     String
+  url       String
+  createdAt DateTime @default(now())
+
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@map("story_links")
 }
 
 model Checklist {
