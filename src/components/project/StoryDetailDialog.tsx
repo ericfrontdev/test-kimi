@@ -177,6 +177,9 @@ export function StoryDetailDialog({
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
 
+  // Checklist visibility
+  const [showChecklist, setShowChecklist] = useState(false);
+
   // External links state
   const [showLinks, setShowLinks] = useState(false);
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -190,7 +193,11 @@ export function StoryDetailDialog({
   const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
 
-  // Auto-show links section when story has links
+  // Auto-show sections when story data loads
+  useEffect(() => {
+    if ((storyDetail?.checklists ?? []).length > 0) setShowChecklist(true);
+  }, [storyDetail?.checklists]);
+
   useEffect(() => {
     if ((storyDetail?.links ?? []).length > 0) setShowLinks(true);
   }, [storyDetail?.links]);
@@ -291,8 +298,14 @@ export function StoryDetailDialog({
     }
   }
 
-  async function handleAddChecklist() {
+  async function handleToggleChecklist() {
     if (!storyDetail) return;
+    // If a checklist already exists, just toggle visibility
+    if ((storyDetail.checklists ?? []).length > 0) {
+      setShowChecklist((v) => !v);
+      return;
+    }
+    // No checklist yet — create one and show it
     const res = await fetch(`/api/projects/${projectId}/stories/${storyDetail.id}/checklists`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -300,7 +313,8 @@ export function StoryDetailDialog({
     });
     if (res.ok) {
       const newChecklist: Checklist = await res.json();
-      mutateStory({ ...storyDetail, checklists: [...(storyDetail.checklists ?? []), newChecklist] }, false);
+      mutateStory({ ...storyDetail, checklists: [newChecklist] }, false);
+      setShowChecklist(true);
     }
   }
 
@@ -566,7 +580,7 @@ export function StoryDetailDialog({
               </div>
 
               {/* Checklists */}
-              {(storyDetail?.checklists ?? []).length > 0 && (
+              {showChecklist && (storyDetail?.checklists ?? []).length > 0 && (
                 <>
                   <Separator />
                   <div className="space-y-6">
@@ -756,9 +770,9 @@ export function StoryDetailDialog({
                     size="sm"
                     className={cn(
                       "text-xs",
-                      (storyDetail?.checklists ?? []).length > 0 && "border-primary text-primary"
+                      showChecklist && "border-primary text-primary"
                     )}
-                    onClick={handleAddChecklist}
+                    onClick={handleToggleChecklist}
                     disabled={!storyDetail}
                   >
                     <ListChecks className="h-3 w-3 mr-1" />
