@@ -219,7 +219,7 @@ export function ChecklistSection({
             <button
               type="button"
               onClick={() => handleDeleteItem(item.id)}
-              className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+              className="flex-shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
             </button>

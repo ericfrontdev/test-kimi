@@ -102,7 +102,7 @@ export function LabelSelector({
                 <button
                   type="button"
                   onClick={() => onToggle(label)}
-                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
                 >
                   <span
                     className="h-3 w-3 rounded-full flex-shrink-0"
@@ -123,7 +123,7 @@ export function LabelSelector({
                       });
                     }
                   }}
-                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive cursor-pointer"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -154,7 +154,7 @@ export function LabelSelector({
                   key={c}
                   onClick={() => setNewColor(c)}
                   className={cn(
-                    "h-5 w-5 rounded-full border-2 transition-transform hover:scale-110",
+                    "h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer",
                     newColor === c ? "border-foreground scale-110" : "border-transparent"
                   )}
                   style={{ backgroundColor: c }}
@@ -182,7 +182,7 @@ export function LabelSelector({
                 });
               }
             }}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-muted-foreground"
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent text-sm text-muted-foreground cursor-pointer"
           >
             <Plus className="h-3 w-3" />
             Créer un label
