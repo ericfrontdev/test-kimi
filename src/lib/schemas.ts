@@ -23,6 +23,8 @@ export const TaskStatusSchema = z.enum([
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
+export const ProjectTypeSchema = z.enum(["STORY", "LIST"]);
+
 export const createProjectSchema = z.object({
   name: z
     .string({ error: "Le nom est requis" })
@@ -34,6 +36,7 @@ export const createProjectSchema = z.object({
     .max(500, "La description ne peut pas dépasser 500 caractères")
     .nullish(),
   color: z.string().max(20).nullish(),
+  type: ProjectTypeSchema.optional().default("STORY"),
 });
 
 export const updateProjectSchema = z.object({
@@ -159,6 +162,65 @@ export const createInvitationsSchema = z.object({
   projectIds: z
     .array(z.string().min(1))
     .min(1, "Au moins un projet est requis"),
+});
+
+// ─── Lists ────────────────────────────────────────────────────────────────────
+
+export const ListStatusSchema = z.enum([
+  "BACKLOG",
+  "TODO",
+  "IN_PROGRESS",
+  "DONE",
+  "ARCHIVED",
+]);
+
+export const createListSchema = z.object({
+  title: z
+    .string({ error: "Le titre est requis" })
+    .min(1, "Le titre est requis")
+    .max(200, "Le titre ne peut pas dépasser 200 caractères")
+    .trim(),
+  description: z
+    .string()
+    .max(2000, "La description ne peut pas dépasser 2000 caractères")
+    .nullish(),
+  status: ListStatusSchema.optional().default("BACKLOG"),
+  priority: z.number().int().min(0).max(3).optional().default(2),
+  assigneeId: z.string().uuid().nullish(),
+});
+
+export const updateListSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Le titre ne peut pas être vide")
+    .max(200, "Le titre ne peut pas dépasser 200 caractères")
+    .trim()
+    .optional(),
+  description: z
+    .string()
+    .max(2000, "La description ne peut pas dépasser 2000 caractères")
+    .nullish(),
+  status: ListStatusSchema.optional(),
+  priority: z.number().int().min(0).max(3).optional(),
+  assigneeId: z.string().nullable().optional(),
+});
+
+export const createListItemSchema = z.object({
+  title: z
+    .string({ error: "Le titre est requis" })
+    .min(1, "Le titre est requis")
+    .max(500, "Le titre ne peut pas dépasser 500 caractères")
+    .trim(),
+});
+
+export const updateListItemSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Le titre ne peut pas être vide")
+    .max(500, "Le titre ne peut pas dépasser 500 caractères")
+    .trim()
+    .optional(),
+  status: z.enum(["TODO", "DONE"]).optional(),
 });
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

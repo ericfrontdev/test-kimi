@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, LayoutList, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,34 +14,39 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { useProjectsStore } from "@/stores/projects";
+
+type ProjectType = "STORY" | "LIST";
 
 export function CreateProjectDialog() {
   const [open, setOpen] = useState(false);
-  
-  // Reset form error when dialog opens/closes
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) {
       setFormError(null);
       setName("");
       setDescription("");
+      setProjectType("STORY");
     }
   };
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [projectType, setProjectType] = useState<ProjectType>("STORY");
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  
+
   const createProject = useProjectsStore((state) => state.createProject);
   const storeError = useProjectsStore((state) => state.error);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-    
+
     if (!name.trim()) {
-      setFormError("Project name is required");
+      setFormError("Le nom du projet est requis");
       return;
     }
 
@@ -49,15 +54,17 @@ export function CreateProjectDialog() {
     const project = await createProject({
       name: name.trim(),
       description: description.trim() || undefined,
+      type: projectType,
     });
     setIsLoading(false);
 
     if (project) {
       setName("");
       setDescription("");
+      setProjectType("STORY");
       setOpen(false);
     } else {
-      setFormError(storeError || "Failed to create project");
+      setFormError(storeError || "Échec de la création du projet");
     }
   }
 
@@ -72,7 +79,7 @@ export function CreateProjectDialog() {
         <DialogHeader>
           <DialogTitle>Créer un Projet</DialogTitle>
           <DialogDescription>
-            Créez un nouveau projet pour organiser vos stories.
+            Créez un nouveau projet pour organiser votre travail.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -96,6 +103,45 @@ export function CreateProjectDialog() {
                 placeholder="Brève description..."
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>Type de projet</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProjectType("STORY")}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-lg border p-3 text-sm transition-colors",
+                    projectType === "STORY"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  )}
+                >
+                  <Layers size={20} />
+                  <span className="font-medium">Story-based</span>
+                  <span className="text-xs text-center leading-tight">
+                    Kanban, backlog, stories et sous-tâches
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProjectType("LIST")}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-lg border p-3 text-sm transition-colors",
+                    projectType === "LIST"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  )}
+                >
+                  <LayoutList size={20} />
+                  <span className="font-medium">List-based</span>
+                  <span className="text-xs text-center leading-tight">
+                    Listes de tâches avec items à cocher
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {formError && (
               <p className="text-sm text-destructive">{formError}</p>
             )}

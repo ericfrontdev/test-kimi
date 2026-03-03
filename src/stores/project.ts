@@ -5,6 +5,7 @@ interface ProjectState {
   projectId: string | null;
   projectName: string | null;
   projectDescription: string | null;
+  projectType: "STORY" | "LIST";
   stories: Story[];
   hasMoreStories: boolean;
   isLoadingMore: boolean;
@@ -22,7 +23,8 @@ interface ProjectState {
     hasMoreStories?: boolean,
     userRole?: "OWNER" | "ADMIN" | "MEMBER",
     projectName?: string | null,
-    projectDescription?: string | null
+    projectDescription?: string | null,
+    projectType?: "STORY" | "LIST"
   ) => void;
   updateProjectMeta: (name: string, description: string | null) => void;
   addStory: (story: Story) => void;
@@ -59,6 +61,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   projectId: null,
   projectName: null,
   projectDescription: null,
+  projectType: "STORY",
   stories: [],
   hasMoreStories: false,
   isLoadingMore: false,
@@ -69,11 +72,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadingTasks: new Set(),
   projectUsers: [],
 
-  setProject: (projectId, stories, hasMoreStories = false, userRole = "MEMBER", projectName = null, projectDescription = null) =>
+  setProject: (projectId, stories, hasMoreStories = false, userRole = "MEMBER", projectName = null, projectDescription = null, projectType = "STORY") =>
     set({
       projectId,
       projectName,
       projectDescription,
+      projectType,
       stories,
       hasMoreStories,
       userRole,

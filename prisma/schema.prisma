@@ -6,6 +6,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ProjectType {
+  STORY
+  LIST
+}
+
 enum StoryStatus {
   BACKLOG
   TODO
@@ -39,6 +44,7 @@ model User {
   projectMembers ProjectMember[]
   stories       Story[]     @relation("StoryAuthor")
   assignedStories Story[]   @relation("StoryAssignee")
+  assignedLists ProjectList[] @relation("ListAssignee")
   tasks         Task[]
   comments      Comment[]
   taskComments  TaskComment[]
@@ -49,21 +55,23 @@ model User {
 }
 
 model Project {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
   description String?
-  color       String?  // Couleur optionnelle pour identifier le projet
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  color       String?     // Couleur optionnelle pour identifier le projet
+  type        ProjectType @default(STORY)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
   ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  
+  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
   members     ProjectMember[]
   stories     Story[]
+  lists       ProjectList[]
   labels      Label[]
   invitationProjects InvitationProject[]
-  
+
   @@map("projects")
 }
 
@@ -302,4 +310,39 @@ model TaskComment {
   
   @@index([taskId, createdAt])
   @@map("task_comments")
+}
+
+model ProjectList {
+  id          String   @id @default(uuid())
+  listNumber  Int
+  title       String
+  description String?
+  status      String   @default("BACKLOG") // BACKLOG | TODO | IN_PROGRESS | DONE | ARCHIVED
+  priority    Int      @default(2)         // 0=Critique 1=Haute 2=Normale 3=Basse
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId  String?
+  assignee    User?    @relation("ListAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  items       ListItem[]
+
+  @@unique([projectId, listNumber])
+  @@index([projectId, status, createdAt(sort: Desc)])
+  @@map("project_lists")
+}
+
+model ListItem {
+  id        String      @id @default(uuid())
+  title     String
+  status    String      @default("TODO") // TODO | DONE
+  position  Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  listId    String
+  list      ProjectList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@map("list_items")
 }

@@ -20,7 +20,7 @@ interface ProjectsState {
   
   // Actions
   fetchProjects: () => Promise<void>;
-  createProject: (data: { name: string; description?: string }) => Promise<Project | null>;
+  createProject: (data: { name: string; description?: string; type?: "STORY" | "LIST" }) => Promise<Project | null>;
   updateProject: (id: string, data: { name?: string; description?: string }) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   selectProject: (id: string | null) => void;

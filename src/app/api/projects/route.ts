@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   if (response) return response;
 
   try {
-    const { name, description, color } = data;
+    const { name, description, color, type } = data;
 
     // Ensure user exists in database before creating project
     await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
         name,
         description: description ?? null,
         color: color ?? null,
+        type: type ?? "STORY",
         ownerId: user.id,
         members: {
           create: {
