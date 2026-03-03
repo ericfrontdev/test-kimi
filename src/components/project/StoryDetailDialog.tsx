@@ -173,11 +173,11 @@ export function StoryDetailDialog({
   const commentsKey = open && story ? `/api/projects/${projectId}/stories/${story.id}/comments` : null;
   const membersKey = open ? `/api/projects/${projectId}/members` : null;
 
-  const { data: storyDetail, isLoading, mutate: mutateStory } = useSWR<StoryDetail>(storyKey, fetcher);
-  const { data: comments = [], isLoading: isLoadingComments, mutate: mutateComments } = useSWR<Comment[]>(commentsKey, fetcher);
-  const { data: projectUsers = [], isLoading: isLoadingUsers } = useSWR<TaskAssignee[]>(membersKey, fetcher);
+  const { data: storyDetail, isLoading, mutate: mutateStory } = useSWR<StoryDetail>(storyKey, fetcher, { revalidateOnFocus: false });
+  const { data: comments = [], isLoading: isLoadingComments, mutate: mutateComments } = useSWR<Comment[]>(commentsKey, fetcher, { revalidateOnFocus: false });
+  const { data: projectUsers = [], isLoading: isLoadingUsers } = useSWR<TaskAssignee[]>(membersKey, fetcher, { revalidateOnFocus: false });
   const labelsKey = open ? `/api/projects/${projectId}/labels` : null;
-  const { data: projectLabels = [], mutate: mutateProjectLabels } = useSWR<Label[]>(labelsKey, fetcher);
+  const { data: projectLabels = [], mutate: mutateProjectLabels } = useSWR<Label[]>(labelsKey, fetcher, { revalidateOnFocus: false });
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState("");

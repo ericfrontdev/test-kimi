@@ -92,12 +92,8 @@ export function CreateStoryDialog({
   const [localChecklistItems, setLocalChecklistItems] = useState<{ id: string; title: string; status: "TODO" | "IN_PROGRESS" | "DONE" }[]>([]);
   const [isAddingLocalItem, setIsAddingLocalItem] = useState(false);
   const [newLocalItemTitle, setNewLocalItemTitle] = useState("");
-  // Subtasks — local list for create mode, live API for edit mode
+  // Subtasks — local list for create mode, SWR cache for edit mode (single source of truth)
   const [localSubtasks, setLocalSubtasks] = useState<{ id: string; title: string }[]>([]);
-  const [editTasks, setEditTasks] = useState<{
-    id: string; taskNumber: number; title: string; status: string;
-    assignee?: { id: string; name: string | null; email: string; avatarUrl?: string | null } | null;
-  }[]>([]);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   // Links — local list for create mode, live API for edit mode
@@ -117,16 +113,17 @@ export function CreateStoryDialog({
   const [createAnother, setCreateAnother] = useState(false);
 
   // Fetch story data when in edit mode
-  const { data: editStoryData, isLoading: isLoadingStory } = useSWR<{
+  const { data: editStoryData, isLoading: isLoadingStory, mutate: mutateEditStory } = useSWR<{
     id: string; title: string; description?: string | null; status: string;
     type: "FEATURE" | "FIX"; priority: number; assigneeId?: string | null;
     dueDate?: string | null; labels?: Label[];
-    tasks?: { id: string; taskNumber: number; title: string; status: string }[];
+    tasks?: { id: string; taskNumber: number; title: string; status: string; assignee?: { id: string; name: string | null; email: string; avatarUrl?: string | null } | null }[];
     links?: { id: string; title: string; url: string }[];
     attachments?: { id: string; filename: string; url: string; size: number; mimeType: string }[];
   }>(
     isEditMode && dialogOpen ? `/api/projects/${projectId}/stories/${storyId}` : null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false }
   );
 
   // Populate form fields when story data loads
@@ -141,7 +138,6 @@ export function CreateStoryDialog({
       setDueDate(editStoryData.dueDate ? new Date(editStoryData.dueDate) : null);
       setSelectedLabels(editStoryData.labels ?? []);
       setOriginalLabels(editStoryData.labels ?? []);
-      setEditTasks(editStoryData.tasks ?? []);
       setEditLinks(editStoryData.links ?? []);
       if ((editStoryData.links ?? []).length > 0) setShowLinks(true);
       setEditAttachments(editStoryData.attachments ?? []);
@@ -153,13 +149,18 @@ export function CreateStoryDialog({
 
   const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
     dialogOpen ? `/api/projects/${projectId}/members` : null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false }
   );
 
   const { data: projectLabels = [], mutate: mutateLabels } = useSWR<Label[]>(
     dialogOpen ? `/api/projects/${projectId}/labels` : null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false }
   );
+
+  // Derived from SWR cache — single source of truth shared with StoryDetailDialog
+  const editTasks = editStoryData?.tasks ?? [];
 
   function resetForm() {
     setTitle("");
@@ -174,7 +175,6 @@ export function CreateStoryDialog({
     setShowChecklist(false);
     setLocalChecklistItems([]);
     setLocalSubtasks([]);
-    setEditTasks([]);
     setIsAddingSubtask(false);
     setNewSubtaskTitle("");
     setShowLinks(false);
@@ -363,7 +363,10 @@ export function CreateStoryDialog({
   async function handleToggleSubtaskStatus(taskId: string, currentStatus: string) {
     if (!isEditMode || !storyId) return;
     const newStatus = currentStatus === "DONE" ? "TODO" : "DONE";
-    setEditTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: newStatus } : t));
+    mutateEditStory(
+      (current) => current ? { ...current, tasks: (current.tasks ?? []).map((t) => t.id === taskId ? { ...t, status: newStatus } : t) } : current,
+      false
+    );
     await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -375,7 +378,10 @@ export function CreateStoryDialog({
     if (!isEditMode || !storyId) return;
     const user = userId ? projectUsers.find((u) => u.id === userId) ?? null : null;
     const assignee = user ? { id: user.id, name: user.name ?? null, email: user.email, avatarUrl: user.avatarUrl } : null;
-    setEditTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, assignee } : t));
+    mutateEditStory(
+      (current) => current ? { ...current, tasks: (current.tasks ?? []).map((t) => t.id === taskId ? { ...t, assignee } : t) } : current,
+      false
+    );
     await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -396,7 +402,10 @@ export function CreateStoryDialog({
       });
       if (res.ok) {
         const task = await res.json();
-        setEditTasks((prev) => [...prev, task]);
+        mutateEditStory(
+          (current) => current ? { ...current, tasks: [...(current.tasks ?? []), task] } : current,
+          false
+        );
       }
     } else {
       // Create mode: add locally
@@ -408,7 +417,10 @@ export function CreateStoryDialog({
 
   async function handleDeleteSubtask(id: string) {
     if (isEditMode && storyId) {
-      setEditTasks((prev) => prev.filter((t) => t.id !== id));
+      mutateEditStory(
+        (current) => current ? { ...current, tasks: (current.tasks ?? []).filter((t) => t.id !== id) } : current,
+        false
+      );
       await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks/${id}`, { method: "DELETE" });
     } else {
       setLocalSubtasks((prev) => prev.filter((s) => s.id !== id));
