@@ -123,7 +123,7 @@ export function CreateStoryDialog({
   }>(
     isEditMode && dialogOpen ? `/api/projects/${projectId}/stories/${storyId}` : null,
     fetcher,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // Populate form fields when story data loads
@@ -150,13 +150,13 @@ export function CreateStoryDialog({
   const { data: projectUsers = [] } = useSWR<ProjectUser[]>(
     dialogOpen ? `/api/projects/${projectId}/members` : null,
     fetcher,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   const { data: projectLabels = [], mutate: mutateLabels } = useSWR<Label[]>(
     dialogOpen ? `/api/projects/${projectId}/labels` : null,
     fetcher,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // Derived from SWR cache — single source of truth shared with StoryDetailDialog

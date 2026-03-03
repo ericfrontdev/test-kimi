@@ -169,15 +169,18 @@ export function StoryDetailDialog({
   const isAdmin = useProjectStore((s) => s.userRole) !== "MEMBER";
   const syncStorySubtasks = useProjectStore((s) => s.syncStorySubtasks);
 
-  const storyKey = open && story ? `/api/projects/${projectId}/stories/${story.id}` : null;
+  // La clé story ne dépend PAS de `open` : le cache reste actif entre les ouvertures/fermetures
+  // → pas de transition null→URL à chaque ouverture → pas de refetch → pas de flash
+  const storyKey = story?.id ? `/api/projects/${projectId}/stories/${story.id}` : null;
   const commentsKey = open && story ? `/api/projects/${projectId}/stories/${story.id}/comments` : null;
   const membersKey = open ? `/api/projects/${projectId}/members` : null;
 
-  const { data: storyDetail, isLoading, mutate: mutateStory } = useSWR<StoryDetail>(storyKey, fetcher, { revalidateOnFocus: false });
-  const { data: comments = [], isLoading: isLoadingComments, mutate: mutateComments } = useSWR<Comment[]>(commentsKey, fetcher, { revalidateOnFocus: false });
-  const { data: projectUsers = [], isLoading: isLoadingUsers } = useSWR<TaskAssignee[]>(membersKey, fetcher, { revalidateOnFocus: false });
+  const SWR_OPTS = { revalidateOnFocus: false, revalidateIfStale: false } as const;
+  const { data: storyDetail, isLoading, mutate: mutateStory } = useSWR<StoryDetail>(storyKey, fetcher, SWR_OPTS);
+  const { data: comments = [], isLoading: isLoadingComments, mutate: mutateComments } = useSWR<Comment[]>(commentsKey, fetcher, SWR_OPTS);
+  const { data: projectUsers = [], isLoading: isLoadingUsers } = useSWR<TaskAssignee[]>(membersKey, fetcher, SWR_OPTS);
   const labelsKey = open ? `/api/projects/${projectId}/labels` : null;
-  const { data: projectLabels = [], mutate: mutateProjectLabels } = useSWR<Label[]>(labelsKey, fetcher, { revalidateOnFocus: false });
+  const { data: projectLabels = [], mutate: mutateProjectLabels } = useSWR<Label[]>(labelsKey, fetcher, SWR_OPTS);
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState("");
