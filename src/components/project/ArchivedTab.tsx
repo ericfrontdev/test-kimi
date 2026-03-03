@@ -62,7 +62,7 @@ function getStatusLabel(status: string) {
 }
 
 export function ArchivedTab({ projectId }: ArchivedTabProps) {
-  const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
+  const addStory = useProjectStore((state) => state.addStory);
   const removeStory = useProjectStore((state) => state.removeStory);
   const userRole = useProjectStore((state) => state.userRole);
   const isAdmin = userRole !== "MEMBER";
@@ -100,9 +100,18 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
     await fetchArchived(archivedStories.length, true);
   }
 
-  async function handleUnarchive(storyId: string) {
-    await updateStoryStatus(storyId, "BACKLOG");
-    setArchivedStories((prev) => prev.filter((s) => s.id !== storyId));
+  async function handleUnarchive(story: Story) {
+    const response = await fetch(`/api/projects/${projectId}/stories/${story.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "BACKLOG" }),
+    });
+    if (response.ok) {
+      addStory({ ...story, status: "BACKLOG" });
+      setArchivedStories((prev) => prev.filter((s) => s.id !== story.id));
+    } else {
+      toast.error("Échec de la restauration");
+    }
   }
 
   async function handleDelete(storyId: string) {
@@ -213,7 +222,7 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleUnarchive(story.id);
+                              handleUnarchive(story);
                             }}
                           >
                             <ArchiveRestore className="h-4 w-4 mr-2" />
@@ -256,7 +265,7 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
       )}
 
       {/* Dialogs always mounted — prevents Radix focus-trap leak on last-story deletion */}
-      <Dialog open={!!storyToDelete} onOpenChange={(open) => !open && setStoryToDelete(null)}>
+      <Dialog open={!!storyToDelete} onOpenChange={(open) => { if (!open) { setStoryToDelete(null); setIsDeleting(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Supprimer définitivement ?</DialogTitle>
