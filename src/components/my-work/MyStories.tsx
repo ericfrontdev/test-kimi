@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { StoryDetailDialog } from "@/components/project/StoryDetailDialog";
 
-type FilterMode = "active" | "all";
+type FilterMode = "active" | "in_review" | "done" | "all";
 
 const STATUS_ORDER = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"] as const;
 
@@ -45,6 +45,10 @@ export function MyStories() {
   const filteredStories =
     filter === "active"
       ? stories.filter((s) => s.status === "TODO" || s.status === "IN_PROGRESS")
+      : filter === "in_review"
+      ? stories.filter((s) => s.status === "IN_REVIEW")
+      : filter === "done"
+      ? stories.filter((s) => s.status === "DONE")
       : stories;
 
   const grouped = STATUS_ORDER.reduce<Record<string, MyWorkStory[]>>((acc, status) => {
@@ -84,6 +88,8 @@ export function MyStories() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">À faire et en cours</SelectItem>
+              <SelectItem value="in_review">En révision</SelectItem>
+              <SelectItem value="done">Terminé</SelectItem>
               <SelectItem value="all">Toutes les stories</SelectItem>
             </SelectContent>
           </Select>
