@@ -105,20 +105,20 @@ export async function POST(
   try {
     const { title, description, status = "BACKLOG", type, priority, assigneeId, dueDate, labelIds } = data;
 
-    // Verify project exists and user has access (owner or admin only)
+    // Verify project exists and user has access (any member)
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
         OR: [
           { ownerId: user.id },
-          { members: { some: { userId: user.id, role: "ADMIN" } } },
+          { members: { some: { userId: user.id } } },
         ],
       },
     });
 
     if (!project) {
       return NextResponse.json(
-        { error: "Droits insuffisants" },
+        { error: "Projet introuvable ou accès refusé" },
         { status: 403 }
       );
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FileText, Clock, GripVertical, Plus } from "lucide-react";
+import { FileText, Clock, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateStoryDialog } from "./CreateStoryDialog";
@@ -32,12 +32,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useProjectStore } from "@/stores/project";
-import { toast } from "sonner";
 import type { Story } from "./kanban/types";
 
 export function DescriptionTab() {
   const projectId = useProjectStore((s) => s.projectId) ?? "";
-  const userRole = useProjectStore((s) => s.userRole);
   const storeStories = useProjectStore((state) => state.stories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
 
@@ -145,22 +143,7 @@ export function DescriptionTab() {
             <FileText size={18} />
             Stories
           </CardTitle>
-          {userRole !== "MEMBER" ? (
-            <CreateStoryDialog projectId={projectId} variant="icon" />
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() =>
-                toast.error("Action non autorisée", {
-                  description: "Seuls les admins et propriétaires peuvent créer des stories.",
-                })
-              }
-            >
-              <Plus size={16} />
-            </Button>
-          )}
+          <CreateStoryDialog projectId={projectId} variant="icon" />
         </CardHeader>
         <CardContent>
           <DndContext
