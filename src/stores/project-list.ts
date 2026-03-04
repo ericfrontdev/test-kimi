@@ -75,7 +75,13 @@ export const useProjectListStore = create<ProjectListState>((set, get) => ({
     }),
 
   addList: (list) =>
-    set((state) => ({ lists: [list, ...state.lists] })),
+    set((state) => {
+      const exists = state.lists.some((l) => l.id === list.id);
+      if (exists) {
+        return { lists: state.lists.map((l) => (l.id === list.id ? list : l)) };
+      }
+      return { lists: [list, ...state.lists] };
+    }),
 
   removeList: (listId) =>
     set((state) => ({ lists: state.lists.filter((l) => l.id !== listId) })),

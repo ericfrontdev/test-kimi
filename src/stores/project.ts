@@ -91,7 +91,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ projectName: name, projectDescription: description }),
 
   addStory: (story) =>
-    set((state) => ({ stories: [story, ...state.stories] })),
+    set((state) => {
+      const exists = state.stories.some((s) => s.id === story.id);
+      if (exists) {
+        return { stories: state.stories.map((s) => (s.id === story.id ? story : s)) };
+      }
+      return { stories: [story, ...state.stories] };
+    }),
 
   removeStory: (storyId) =>
     set((state) => ({ stories: state.stories.filter((s) => s.id !== storyId) })),
