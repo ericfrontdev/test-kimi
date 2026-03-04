@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MoreHorizontal, Layers, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
-import { StoryDetailDialog } from "./StoryDetailDialog";
+const StoryDetailDialog = dynamic(() =>
+  import("./StoryDetailDialog").then((m) => m.StoryDetailDialog)
+);
 import { CreateStoryDialog } from "./CreateStoryDialog";
 import { FilterSortBar, applyFiltersAndSort, DEFAULT_FILTER, DEFAULT_SORT } from "./FilterSortBar";
 import type { FilterState, SortState } from "./FilterSortBar";
@@ -76,7 +79,10 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
     }
   }
 
-  const filteredStories = applyFiltersAndSort(stories, filter, sort);
+  const filteredStories = useMemo(
+    () => applyFiltersAndSort(stories, filter, sort),
+    [stories, filter, sort]
+  );
   const backlogStories = filteredStories.filter((s) => s.status === "BACKLOG");
   const boardStories = filteredStories.filter((s) => s.status !== "BACKLOG" && s.status !== "ARCHIVED");
 

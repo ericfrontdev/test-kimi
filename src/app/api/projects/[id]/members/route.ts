@@ -17,7 +17,7 @@ export async function GET(
   const { id: projectId } = await params;
 
   try {
-    // Verify user has access to project
+    // Single query: verify access + get owner + get all members
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
@@ -26,46 +26,29 @@ export async function GET(
           { members: { some: { userId: user.id } } },
         ],
       },
+      select: {
+        ownerId: true,
+        owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        members: {
+          include: {
+            user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          },
+        },
+      },
     });
 
     if (!project) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
-    // Get all members including owner
-    const members = await prisma.projectMember.findMany({
-      where: { projectId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-      },
-    });
-
-    // Get owner if not already in members
-    const owner = await prisma.user.findUnique({
-      where: { id: project.ownerId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatarUrl: true,
-      },
-    });
-
-    const enriched = members.map((m) => ({
+    const enriched = project.members.map((m) => ({
       ...m.user,
       role: m.role as "ADMIN" | "MEMBER",
       isOwner: m.userId === project.ownerId,
     }));
 
-    if (owner && !enriched.find((u) => u.id === owner.id)) {
-      enriched.unshift({ ...owner, role: "ADMIN" as const, isOwner: true });
+    if (!enriched.find((u) => u.id === project.owner.id)) {
+      enriched.unshift({ ...project.owner, role: "ADMIN" as const, isOwner: true });
     }
 
     return NextResponse.json(enriched);

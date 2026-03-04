@@ -1,11 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CheckSquare, ChevronRight, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useProjectStore } from "@/stores/project";
+import { useShallow } from "zustand/react/shallow";
 import type { Story } from "./types";
 import { AssigneeDropdown } from "./AssigneeDropdown";
 import { PriorityDropdown } from "./PriorityDropdown";
@@ -16,9 +18,10 @@ interface KanbanCardProps {
   onClick: () => void;
 }
 
-export function KanbanCard({ story, onClick }: KanbanCardProps) {
-  const expandedStories = useProjectStore((state) => state.expandedStories);
-  const storyTasks = useProjectStore((state) => state.storyTasks);
+export const KanbanCard = memo(function KanbanCard({ story, onClick }: KanbanCardProps) {
+  const { expandedStories, storyTasks } = useProjectStore(
+    useShallow((s) => ({ expandedStories: s.expandedStories, storyTasks: s.storyTasks }))
+  );
   const projectUsers = useProjectStore((state) => state.projectUsers);
   const toggleStoryExpanded = useProjectStore((state) => state.toggleStoryExpanded);
   const updateStoryPriority = useProjectStore((state) => state.updateStoryPriority);
@@ -147,4 +150,4 @@ export function KanbanCard({ story, onClick }: KanbanCardProps) {
       </Card>
     </div>
   );
-}
+});

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useProjectStore } from "@/stores/project";
+import { useShallow } from "zustand/react/shallow";
 import {
   DndContext,
   DragOverlay,
@@ -20,7 +22,9 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilterSortBar, applyFiltersAndSort, DEFAULT_FILTER, DEFAULT_SORT } from "./FilterSortBar";
 import type { FilterState, SortState } from "./FilterSortBar";
-import { StoryDetailDialog } from "./StoryDetailDialog";
+const StoryDetailDialog = dynamic(() =>
+  import("./StoryDetailDialog").then((m) => m.StoryDetailDialog)
+);
 import { KanbanColumn } from "./kanban/KanbanColumn";
 import { StoryCardOverlay } from "./kanban/StoryCardOverlay";
 import type { Story } from "./kanban/types";
@@ -37,10 +41,11 @@ export function BoardTab({ projectId }: BoardTabProps) {
   const isLoadingMore = useProjectStore((state) => state.isLoadingMore);
   const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
   const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
-  const storyTasks = useProjectStore((state) => state.storyTasks);
+  const { storyTasks, expandedStories } = useProjectStore(
+    useShallow((s) => ({ storyTasks: s.storyTasks, expandedStories: s.expandedStories }))
+  );
   const projectUsers = useProjectStore((state) => state.projectUsers);
   const fetchProjectUsers = useProjectStore((state) => state.fetchProjectUsers);
-  const expandedStories = useProjectStore((state) => state.expandedStories);
   const toggleStoryExpanded = useProjectStore((state) => state.toggleStoryExpanded);
   const setStoryTasksCache = useProjectStore((state) => state.setStoryTasksCache);
 
@@ -51,7 +56,10 @@ export function BoardTab({ projectId }: BoardTabProps) {
   const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
 
   const [dragStories, setDragStories] = useState<Story[] | null>(null);
-  const filteredStoreStories = applyFiltersAndSort(storeStories, filter, sort);
+  const filteredStoreStories = useMemo(
+    () => applyFiltersAndSort(storeStories, filter, sort),
+    [storeStories, filter, sort]
+  );
   const localStories = dragStories ?? filteredStoreStories;
 
   const blockedRef = useRef(false);
@@ -62,7 +70,7 @@ export function BoardTab({ projectId }: BoardTabProps) {
     fetchProjectUsers(projectId);
   }, [projectId, fetchProjectUsers]);
 
-  // Preload all subtasks in background when story IDs change
+  // Preload all subtasks in background when story IDs change (single batch request)
   const preloadedRef = useRef<Set<string>>(new Set());
   const storyIdsKey = storeStories.map((s) => s.id).join(",");
 
@@ -72,23 +80,23 @@ export function BoardTab({ projectId }: BoardTabProps) {
     );
     if (storiesToLoad.length === 0) return;
 
-    storiesToLoad.forEach((s) => preloadedRef.current.add(s.id));
+    const ids = storiesToLoad.map((s) => s.id);
+    ids.forEach((id) => preloadedRef.current.add(id));
 
-    Promise.all(
-      storiesToLoad.map(async (story) => {
-        try {
-          const response = await fetch(`/api/projects/${projectId}/stories/${story.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setStoryTasksCache(story.id, data.tasks || []);
-          } else {
-            preloadedRef.current.delete(story.id);
-          }
-        } catch {
-          preloadedRef.current.delete(story.id);
+    fetch(`/api/projects/${projectId}/stories/batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storyIds: ids }),
+    })
+      .then((r) => r.json())
+      .then((data: Record<string, import("./kanban/types").Task[]>) => {
+        for (const storyId of ids) {
+          setStoryTasksCache(storyId, data[storyId] ?? []);
         }
       })
-    );
+      .catch(() => {
+        ids.forEach((id) => preloadedRef.current.delete(id));
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, storyIdsKey]);
 

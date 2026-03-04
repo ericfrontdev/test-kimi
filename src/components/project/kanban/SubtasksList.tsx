@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useProjectStore } from "@/stores/project";
+import { useShallow } from "zustand/react/shallow";
 import { SubtaskCard } from "./SubtaskCard";
 import { SubtaskDetailDialog } from "./SubtaskDetailDialog";
 import type { Task } from "./types";
@@ -13,8 +14,9 @@ interface SubtasksListProps {
 }
 
 export function SubtasksList({ storyId, storyType, storyNumber }: SubtasksListProps) {
-  const storyTasks = useProjectStore((state) => state.storyTasks);
-  const loadingTasks = useProjectStore((state) => state.loadingTasks);
+  const { storyTasks, loadingTasks } = useProjectStore(
+    useShallow((s) => ({ storyTasks: s.storyTasks, loadingTasks: s.loadingTasks }))
+  );
 
   const tasks = storyTasks[storyId] || [];
   const isLoading = loadingTasks.has(storyId);

@@ -330,6 +330,7 @@ model ProjectList {
 
   @@unique([projectId, listNumber])
   @@index([projectId, status, createdAt(sort: Desc)])
+  @@index([projectId, listNumber(sort: Desc)])
   @@map("project_lists")
 }
 
@@ -344,5 +345,6 @@ model ListItem {
   listId    String
   list      ProjectList @relation(fields: [listId], references: [id], onDelete: Cascade)
 
+  @@index([listId, position(sort: Desc)])
   @@map("list_items")
 }

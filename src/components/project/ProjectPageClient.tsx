@@ -26,6 +26,7 @@ type ListTab = (typeof VALID_LIST_TABS)[number];
 // Dynamically import DescriptionTab to avoid hydration issues with dnd-kit
 const DescriptionTab = dynamic(() => import("./DescriptionTab").then((mod) => mod.DescriptionTab), {
   ssr: false,
+  loading: () => <div className="h-48 animate-pulse rounded-lg bg-muted/40" />,
 });
 
 interface Project {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckSquare, ChevronRight, ChevronDown } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
+import { useShallow } from "zustand/react/shallow";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -25,8 +26,9 @@ export function ListCard({ list, projectId, onClick }: ListCardProps) {
     data: { type: "List", list },
   });
 
-  const expandedLists = useProjectListStore((s) => s.expandedLists);
-  const listItems = useProjectListStore((s) => s.listItems);
+  const { expandedLists, listItems } = useProjectListStore(
+    useShallow((s) => ({ expandedLists: s.expandedLists, listItems: s.listItems }))
+  );
   const toggleListExpanded = useProjectListStore((s) => s.toggleListExpanded);
   const updateListItem = useProjectListStore((s) => s.updateListItem);
 

@@ -1,12 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 import { KanbanCard } from "./KanbanCard";
 import type { ColumnProps } from "./types";
 
-export function KanbanColumn({
+export const KanbanColumn = memo(function KanbanColumn({
   id,
   title,
   color,
@@ -55,4 +56,4 @@ export function KanbanColumn({
       </SortableContext>
     </div>
   );
-}
+});

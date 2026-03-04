@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { getInitials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -31,8 +32,15 @@ export function UserAvatar({ name, email, avatarUrl, size = "sm", className }: U
       )}
     >
       {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+        <Image
+          src={avatarUrl}
+          alt={displayName}
+          width={64}
+          height={64}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          unoptimized={!avatarUrl.includes(".supabase.co")}
+        />
       ) : (
         initials
       )}
