@@ -20,6 +20,22 @@ test.describe("Authentification", () => {
     await expect(page.locator("form p.text-destructive")).toBeVisible({ timeout: 5_000 });
   });
 
+  test("page login n'affiche pas de lien inscription", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.getByRole("link", { name: /sign up|register|s'inscrire|créer un compte/i })).toHaveCount(0);
+  });
+
+  test("/register sans token redirige vers /login", async ({ page }) => {
+    await page.goto("/register");
+    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
+  });
+
+  test("/register avec token valide affiche le formulaire", async ({ page }) => {
+    await page.goto("/register?invite=fake-token-for-ui-test");
+    await expect(page).toHaveURL(/\/register/, { timeout: 5_000 });
+    await expect(page.getByRole("button", { name: /create account/i })).toBeVisible();
+  });
+
   test("logout redirige vers /login", async ({ page }) => {
     // Login first
     await page.goto("/login");
