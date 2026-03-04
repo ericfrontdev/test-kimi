@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useProjectListStore, type ProjectList } from "@/stores/project-list";
 import {
   DndContext,
@@ -17,6 +17,7 @@ import {
   DropAnimation,
   useDroppable,
 } from "@dnd-kit/core";
+import { AlertTriangle } from "lucide-react";
 import { ListDetailDialog } from "./ListDetailDialog";
 import { ListCard } from "./ListCard";
 import { ListCardOverlay } from "./ListCardOverlay";
@@ -39,6 +40,13 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
   const [selectedList, setSelectedList] = useState<ProjectList | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragLists, setDragLists] = useState<ProjectList[] | null>(null);
+  const [blockWarning, setBlockWarning] = useState(false);
+  const blockedRef = useRef(false);
+
+  function canMoveToStatus(list: ProjectList, newStatus: string): boolean {
+    if (newStatus !== "DONE") return true;
+    return list.items.length === 0 || list.items.every((i) => i.status === "DONE");
+  }
 
   const boardLists = storeLists.filter((l) => l.status !== "BACKLOG" && l.status !== "ARCHIVED");
   const localLists = dragLists ?? boardLists;
@@ -51,6 +59,7 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
   const activeList = useMemo(() => localLists.find((l) => l.id === activeId), [activeId, localLists]);
 
   function handleDragStart(event: DragStartEvent) {
+    blockedRef.current = false;
     setDragLists(boardLists);
     setActiveId(event.active.id as string);
   }
@@ -66,6 +75,11 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
     const column = LIST_COLUMNS.find((c) => c.id === overId);
 
     if (column && dragged.status !== column.id) {
+      if (!canMoveToStatus(dragged, column.id)) {
+        blockedRef.current = true;
+        return;
+      }
+      blockedRef.current = false;
       setDragLists((prev) =>
         prev!.map((l) => (l.id === active.id ? { ...l, status: column.id } : l))
       );
@@ -74,6 +88,11 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
 
     const overList = dragLists.find((l) => l.id === overId);
     if (overList && dragged.status !== overList.status) {
+      if (!canMoveToStatus(dragged, overList.status)) {
+        blockedRef.current = true;
+        return;
+      }
+      blockedRef.current = false;
       setDragLists((prev) =>
         prev!.map((l) => (l.id === active.id ? { ...l, status: overList.status } : l))
       );
@@ -82,10 +101,19 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
 
   function handleDragEnd(event: DragEndEvent) {
     const { active } = event;
+    const wasBlocked = blockedRef.current;
+    blockedRef.current = false;
     setActiveId(null);
     const list = (dragLists ?? boardLists).find((l) => l.id === active.id);
     setDragLists(null);
     if (!list) return;
+
+    if (wasBlocked) {
+      setBlockWarning(true);
+      setTimeout(() => setBlockWarning(false), 6000);
+      return;
+    }
+
     updateListStatus(active.id as string, list.status);
   }
 
@@ -95,6 +123,12 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
 
   return (
     <>
+      {blockWarning && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Tous les items doivent être cochés avant de passer cette liste en terminé.
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
