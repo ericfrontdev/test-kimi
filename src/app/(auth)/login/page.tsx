@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -8,21 +7,15 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
           <CardDescription>
-            Enter your email and password to access your account
+            Entrez votre courriel et mot de passe pour accéder à votre compte
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense>
             <LoginForm />
           </Suspense>
-          <div className="mt-4 text-center text-sm">
-            <span className="text-muted-foreground">Don't have an account? </span>
-            <Link href="/register" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>
