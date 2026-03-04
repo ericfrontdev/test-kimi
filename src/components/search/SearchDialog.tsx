@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command, Layers, LayoutList, Loader2, Search, FolderKanban, BookOpen } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
@@ -147,6 +148,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           inputRef.current?.focus();
         }}
       >
+        <VisuallyHidden>
+          <DialogTitle>Recherche</DialogTitle>
+        </VisuallyHidden>
+
         {/* Search input */}
         <div className="flex items-center border-b px-4 py-3 gap-3">
           {isLoading ? (
