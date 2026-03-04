@@ -45,7 +45,7 @@ test.describe("Stories", () => {
     // Create a story (defaults to BACKLOG status)
     await page.getByRole("button", { name: /créer une story/i }).first().click();
     await page.getByLabel(/titre/i).fill(storyTitle);
-    await page.getByRole("dialog").getByRole("button", { name: "Créer une Story" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /créer la story/i }).click();
     await expect(page.getByText(storyTitle)).toBeVisible({ timeout: 10_000 });
 
     // Navigate to Backlog tab

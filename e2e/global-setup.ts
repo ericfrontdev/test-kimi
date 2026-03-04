@@ -25,8 +25,11 @@ export default async function globalSetup() {
     throw new Error(`Failed to create test user: ${error?.message}`);
   }
 
+  // Delete any orphaned public.users row by email (left over from previous failed teardowns)
+  await admin.from("users").delete().eq("email", TEST_USER.email);
+
   // Create the user row in public.users (mirrors what ensureUserExists does)
-  await admin.from("users").upsert({
+  await admin.from("users").insert({
     id: data.user.id,
     email: TEST_USER.email,
     name: TEST_USER.name,
