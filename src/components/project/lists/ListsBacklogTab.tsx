@@ -157,11 +157,11 @@ export function ListsBacklogTab({ projectId }: ListsBacklogTabProps) {
 
   return (
     <div className="space-y-8">
-      {/* Backlog section */}
+      {/* Listes section */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold">
-            Backlog
+            Listes
             <Badge variant="secondary" className="ml-2">
               {backlogLists.length}
             </Badge>

@@ -101,7 +101,7 @@ function ListProjectTabs({ project }: { project: Project }) {
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList>
         <TabsTrigger value="description">Description</TabsTrigger>
-        <TabsTrigger value="listes">Listes</TabsTrigger>
+        <TabsTrigger value="listes">Listes actuelles</TabsTrigger>
         <TabsTrigger value="tableau">Tableau</TabsTrigger>
         <TabsTrigger value="archived">Archivées</TabsTrigger>
       </TabsList>
@@ -151,7 +151,7 @@ export function ProjectPageClient({
     <Tabs defaultValue="description" className="w-full">
       <TabsList>
         <TabsTrigger value="description">Description</TabsTrigger>
-        <TabsTrigger value="listes">Listes</TabsTrigger>
+        <TabsTrigger value="listes">Listes actuelles</TabsTrigger>
         <TabsTrigger value="tableau">Tableau</TabsTrigger>
         <TabsTrigger value="archived">Archivées</TabsTrigger>
       </TabsList>
