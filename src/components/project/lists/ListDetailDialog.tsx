@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Trash2, Check, Loader2, User, Flag, AlignLeft } from "lucide-react";
+import { Plus, Trash2, Loader2, User, Flag, AlignLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useProjectListStore, type ProjectList, type ListItem } from "@/stores/project-list";
 import { useProjectStore } from "@/stores/project";
+import { ListItemDetailDialog } from "./ListItemDetailDialog";
 import type { ProjectUser } from "@/components/project/kanban/types";
 
 const PRIORITY_LABELS: Record<number, string> = {
@@ -55,7 +56,9 @@ export function ListDetailDialog({ list, projectId, open, onOpenChange }: ListDe
   const [titleValue, setTitleValue] = useState("");
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState("");
-  const newItemRef = useRef<HTMLInputElement>(null);
+  const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
+  const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
+  const newItemTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch items when dialog opens
   useEffect(() => {
@@ -100,8 +103,16 @@ export function ListDetailDialog({ list, projectId, open, onOpenChange }: ListDe
     });
   }
 
-  async function handleAddItem(e: React.FormEvent) {
-    e.preventDefault();
+  // Auto-resize new item textarea
+  useEffect(() => {
+    const el = newItemTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [newItemTitle]);
+
+  async function handleAddItem(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!list || !newItemTitle.trim()) return;
 
     setIsAddingItem(true);
@@ -115,10 +126,13 @@ export function ListDetailDialog({ list, projectId, open, onOpenChange }: ListDe
         const item: ListItem = await res.json();
         addListItem(list.id, item);
         setNewItemTitle("");
+        if (newItemTextareaRef.current) {
+          newItemTextareaRef.current.style.height = "auto";
+        }
       }
     } finally {
       setIsAddingItem(false);
-      newItemRef.current?.focus();
+      newItemTextareaRef.current?.focus();
     }
   }
 
@@ -147,6 +161,14 @@ export function ListDetailDialog({ list, projectId, open, onOpenChange }: ListDe
   if (!list) return null;
 
   return (
+    <>
+    <ListItemDetailDialog
+      item={selectedItem}
+      listId={list.id}
+      projectId={projectId}
+      open={isItemDetailOpen}
+      onOpenChange={setIsItemDetailOpen}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -240,25 +262,26 @@ export function ListDetailDialog({ list, projectId, open, onOpenChange }: ListDe
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/40 group"
+                    className="flex items-start gap-3 rounded-md px-2 py-1.5 hover:bg-muted/40 group"
                   >
                     <Checkbox
                       checked={item.status === "DONE"}
                       onCheckedChange={() => handleToggleItem(item)}
-                      className="flex-shrink-0"
+                      className="flex-shrink-0 mt-0.5"
                     />
                     <span
                       className={cn(
-                        "flex-1 text-sm",
+                        "flex-1 text-sm cursor-pointer hover:underline decoration-muted-foreground/50 whitespace-pre-wrap break-words",
                         item.status === "DONE" && "line-through text-muted-foreground"
                       )}
+                      onClick={() => { setSelectedItem(item); setIsItemDetailOpen(true); }}
                     >
                       {item.title}
                     </span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
                       onClick={() => handleDeleteItem(item)}
                     >
                       <Trash2 size={12} />
@@ -275,21 +298,34 @@ export function ListDetailDialog({ list, projectId, open, onOpenChange }: ListDe
             )}
 
             {/* Add item form */}
-            <form onSubmit={handleAddItem} className="flex gap-2 mt-3">
-              <Input
-                ref={newItemRef}
+            <div className="flex gap-2 mt-3 items-start">
+              <textarea
+                ref={newItemTextareaRef}
                 value={newItemTitle}
                 onChange={(e) => setNewItemTitle(e.target.value)}
-                placeholder="Ajouter un item..."
-                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAddItem();
+                  }
+                }}
+                placeholder="Ajouter un item... (Entrée pour valider, Maj+Entrée pour sauter une ligne)"
+                rows={1}
+                className="flex-1 resize-none overflow-hidden rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground min-h-[2.25rem]"
               />
-              <Button type="submit" size="sm" disabled={isAddingItem || !newItemTitle.trim()}>
+              <Button
+                size="sm"
+                disabled={isAddingItem || !newItemTitle.trim()}
+                onClick={() => handleAddItem()}
+                className="flex-shrink-0"
+              >
                 {isAddingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus size={16} />}
               </Button>
-            </form>
+            </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { CheckSquare, ChevronRight, ChevronDown } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useProjectListStore, type ProjectList, type ListItem } from "@/stores/project-list";
 import { priorityColors } from "@/components/project/kanban/types";
+import { ListItemDetailDialog } from "./ListItemDetailDialog";
 
 interface ListCardProps {
   list: ProjectList;
@@ -15,6 +17,9 @@ interface ListCardProps {
 }
 
 export function ListCard({ list, projectId, onClick }: ListCardProps) {
+  const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
+  const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: list.id,
     data: { type: "List", list },
@@ -50,7 +55,20 @@ export function ListCard({ list, projectId, onClick }: ListCardProps) {
     }
   }
 
+  function handleItemClick(item: ListItem) {
+    setSelectedItem(item);
+    setIsItemDetailOpen(true);
+  }
+
   return (
+    <>
+    <ListItemDetailDialog
+      item={selectedItem}
+      listId={list.id}
+      projectId={projectId}
+      open={isItemDetailOpen}
+      onOpenChange={setIsItemDetailOpen}
+    />
     <div
       ref={setNodeRef}
       style={style}
@@ -121,6 +139,7 @@ export function ListCard({ list, projectId, onClick }: ListCardProps) {
                       <ListItemCard
                         item={item}
                         onCheck={(checked) => handleItemCheck(item.id, checked)}
+                        onItemClick={() => handleItemClick(item)}
                       />
                     </div>
                   ))}
@@ -131,23 +150,35 @@ export function ListCard({ list, projectId, onClick }: ListCardProps) {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
 
-function ListItemCard({ item, onCheck }: { item: ListItem; onCheck: (checked: boolean) => void }) {
+function ListItemCard({
+  item,
+  onCheck,
+  onItemClick,
+}: {
+  item: ListItem;
+  onCheck: (checked: boolean) => void;
+  onItemClick: () => void;
+}) {
   return (
     <Card className="border bg-card/50 shadow-none hover:bg-card transition-colors py-0 gap-0">
       <CardContent className="p-0 px-3 py-2.5">
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start gap-2" onClick={(e) => e.stopPropagation()}>
           <Checkbox
             checked={item.status === "DONE"}
             onCheckedChange={(checked) => onCheck(checked === true)}
-            className="h-3.5 w-3.5 flex-shrink-0"
+            className="h-3.5 w-3.5 flex-shrink-0 mt-0.5"
           />
-          <p className={cn(
-            "text-xs font-medium leading-snug flex-1",
-            item.status === "DONE" && "line-through text-muted-foreground"
-          )}>
+          <p
+            className={cn(
+              "text-xs font-medium leading-snug flex-1 cursor-pointer hover:underline decoration-muted-foreground/50 whitespace-pre-wrap break-words",
+              item.status === "DONE" && "line-through text-muted-foreground"
+            )}
+            onClick={(e) => { e.stopPropagation(); onItemClick(); }}
+          >
             {item.title}
           </p>
         </div>
