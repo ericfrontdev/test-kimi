@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { validateBody, updateTaskSchema } from "@/lib/schemas";
 import type { Prisma } from "@prisma/client";
 import { TaskStatus as PrismaTaskStatus } from "@prisma/client";
+import { getProjectAccess } from "@/lib/project-access";
 
 // PATCH /api/projects/[id]/stories/[storyId]/tasks/[taskId] - Update task
 export async function PATCH(
@@ -26,17 +27,8 @@ export async function PATCH(
     const { status, title, assigneeId } = data;
 
     // Verify project exists and user has access (owner or member)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json(
         { error: "Projet non trouvé" },
         { status: 404 }
@@ -113,17 +105,8 @@ export async function DELETE(
 
   try {
     // Verify project exists and user has access (owner or admin only)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id, role: "ADMIN" } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId, "admin");
+    if (!access) {
       return NextResponse.json(
         { error: "Droits insuffisants" },
         { status: 403 }

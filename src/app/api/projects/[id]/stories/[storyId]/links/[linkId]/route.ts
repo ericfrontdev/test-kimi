@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { getProjectAccess } from "@/lib/project-access";
 
 // DELETE /api/projects/[id]/stories/[storyId]/links/[linkId] - Delete a link
 export async function DELETE(
@@ -19,17 +20,8 @@ export async function DELETE(
   const { id: projectId, storyId, linkId } = await params;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 

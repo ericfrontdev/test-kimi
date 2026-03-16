@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { getProjectAccess } from "@/lib/project-access";
 
 // GET /api/projects/[id]/members - Get project members
 export async function GET(
@@ -17,15 +18,14 @@ export async function GET(
   const { id: projectId } = await params;
 
   try {
-    // Single query: verify access + get owner + get all members
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
+      return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
+    }
+
+    // Single query: get owner + all members
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
       select: {
         ownerId: true,
         owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
@@ -75,43 +75,8 @@ export async function POST(
   const { id: projectId } = await params;
 
   try {
-    // First, ensure the current user is a member (for backward compatibility)
-    const currentUserMember = await prisma.projectMember.findFirst({
-      where: {
-        projectId,
-        userId: user.id,
-      },
-    });
-    
-    // If not a member but is owner, add them as admin
-    if (!currentUserMember) {
-      const project = await prisma.project.findFirst({
-        where: { id: projectId, ownerId: user.id },
-      });
-      
-      if (project) {
-        await prisma.projectMember.create({
-          data: {
-            projectId,
-            userId: user.id,
-            role: "ADMIN",
-          },
-        });
-      } else {
-        return NextResponse.json({ error: "Forbidden - not a project member" }, { status: 403 });
-      }
-    }
-    
-    // Check if user is admin of the project
-    const membership = await prisma.projectMember.findFirst({
-      where: {
-        projectId,
-        userId: user.id,
-        role: "ADMIN",
-      },
-    });
-
-    if (!membership) {
+    const access = await getProjectAccess(user.id, projectId, "admin");
+    if (!access) {
       return NextResponse.json({ error: "Forbidden - admin required" }, { status: 403 });
     }
 
@@ -269,15 +234,8 @@ export async function DELETE(
     // Check if user is admin or removing themselves
     const isSelf = userId === user.id;
     if (!isSelf) {
-      const membership = await prisma.projectMember.findFirst({
-        where: {
-          projectId,
-          userId: user.id,
-          role: "ADMIN",
-        },
-      });
-
-      if (!membership) {
+      const access = await getProjectAccess(user.id, projectId, "admin");
+      if (!access) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
@@ -313,18 +271,13 @@ export async function PATCH(
   const { id: projectId } = await params;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: { id: projectId },
-      select: { ownerId: true },
-    });
+    const access = await getProjectAccess(user.id, projectId, "owner");
 
-    if (!project) {
-      return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
-    }
-
-    if (project.ownerId !== user.id) {
+    if (!access) {
       return NextResponse.json({ error: "Seul le propriétaire peut modifier les rôles" }, { status: 403 });
     }
+
+    const { project } = access;
 
     const body = await request.json();
     const { userId, role } = body as { userId: string; role: "ADMIN" | "MEMBER" };

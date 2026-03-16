@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { getProjectAccess } from "@/lib/project-access";
 
 const createItemSchema = z.object({
   title: z.string().min(1).max(500).trim(),
@@ -25,10 +26,8 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ error: "Titre requis" }, { status: 400 });
 
   try {
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }] },
-    });
-    if (!project) return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
 
     const checklist = await prisma.checklist.findFirst({
       where: { id: checklistId, storyId, story: { projectId } },

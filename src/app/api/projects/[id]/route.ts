@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { validateBody, updateProjectSchema } from "@/lib/schemas";
+import { getProjectAccess } from "@/lib/project-access";
 
 // Ensure user exists in database
 async function ensureUserExists(
@@ -51,11 +52,9 @@ export async function PATCH(
   try {
     const { name, description } = data;
 
-    const existingProject = await prisma.project.findFirst({
-      where: { id, ownerId: user.id },
-    });
+    const access = await getProjectAccess(user.id, id, "owner");
 
-    if (!existingProject) {
+    if (!access) {
       return NextResponse.json(
         { error: "Project not found" },
         { status: 404 }
@@ -99,11 +98,9 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const existingProject = await prisma.project.findFirst({
-      where: { id, ownerId: user.id },
-    });
+    const access = await getProjectAccess(user.id, id, "owner");
 
-    if (!existingProject) {
+    if (!access) {
       return NextResponse.json(
         { error: "Project not found" },
         { status: 404 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getProjectAccess } from "@/lib/project-access";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 const BUCKET = "story-attachments";
@@ -42,17 +43,8 @@ export async function POST(
   }
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 

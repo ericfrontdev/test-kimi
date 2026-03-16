@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { validateBody, createListSchema } from "@/lib/schemas";
+import { getProjectAccess } from "@/lib/project-access";
 
 const TAKE_DEFAULT = 50;
 const TAKE_MAX = 100;
@@ -26,17 +27,8 @@ export async function GET(
   const statusParam = searchParams.get("status");
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
@@ -88,17 +80,8 @@ export async function POST(
     const { title, description, status, priority, assigneeId } = data;
 
     // Verify project access (any member)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet introuvable ou accès refusé" }, { status: 403 });
     }
 

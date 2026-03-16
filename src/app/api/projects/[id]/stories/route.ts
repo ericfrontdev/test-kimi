@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { validateBody, createStorySchema } from "@/lib/schemas";
 import { StoryStatus } from "@prisma/client";
+import { getProjectAccess } from "@/lib/project-access";
 
 const TAKE_DEFAULT = 50;
 const TAKE_MAX = 100;
@@ -28,17 +29,8 @@ export async function GET(
 
   try {
     // Verify project exists and user has access
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
@@ -106,22 +98,14 @@ export async function POST(
     const { title, description, status = "BACKLOG", type, priority, assigneeId, dueDate, labelIds } = data;
 
     // Verify project exists and user has access (any member)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json(
         { error: "Projet introuvable ou accès refusé" },
         { status: 403 }
       );
     }
+    const { project } = access;
 
     // Validate assignee belongs to the project
     if (assigneeId) {

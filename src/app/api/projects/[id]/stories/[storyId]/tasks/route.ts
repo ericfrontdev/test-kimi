@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { validateBody, createTaskSchema } from "@/lib/schemas";
+import { getProjectAccess } from "@/lib/project-access";
 
 // POST /api/projects/[id]/stories/[storyId]/tasks - Create new task
 export async function POST(
@@ -24,17 +25,8 @@ export async function POST(
     const { title } = data;
 
     // Verify project exists and user has access (owner or member)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json(
         { error: "Projet non trouvé" },
         { status: 404 }

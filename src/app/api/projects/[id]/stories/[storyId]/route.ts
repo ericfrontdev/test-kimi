@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { validateBody, updateStorySchema } from "@/lib/schemas";
+import { getProjectAccess } from "@/lib/project-access";
 
 // GET /api/projects/[id]/stories/[storyId] - Get story details with subtasks
 export async function GET(
@@ -21,17 +22,8 @@ export async function GET(
 
   try {
     // Verify project exists and user has access (owner or member)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json(
         { error: "Projet non trouvé" },
         { status: 404 }
@@ -126,17 +118,8 @@ export async function PATCH(
     const { title, description, status, priority, assignee, dueDate } = data;
 
     // Verify project exists and user has access (owner or member)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json(
         { error: "Projet non trouvé" },
         { status: 404 }
@@ -199,17 +182,8 @@ export async function DELETE(
 
   try {
     // Verify project exists and user has access (owner or admin only)
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id, role: "ADMIN" } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId, "admin");
+    if (!access) {
       return NextResponse.json(
         { error: "Droits insuffisants" },
         { status: 403 }

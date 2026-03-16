@@ -18,13 +18,21 @@ export async function GET() {
   try {
     await ensureUserExists(user.id, user.email!, user.user_metadata?.name);
 
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { platformRole: true },
+    });
+    const isSuperAdmin = dbUser?.platformRole === "SUPER_ADMIN";
+
     const projects = await prisma.project.findMany({
-      where: {
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
+      where: isSuperAdmin
+        ? {}
+        : {
+            OR: [
+              { ownerId: user.id },
+              { members: { some: { userId: user.id } } },
+            ],
+          },
       orderBy: { createdAt: "desc" },
       include: {
         members: {

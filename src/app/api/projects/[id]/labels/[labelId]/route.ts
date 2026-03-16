@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 
 // DELETE /api/projects/[id]/labels/[labelId]
 export async function DELETE(
@@ -15,17 +16,8 @@ export async function DELETE(
   const { id: projectId, labelId } = await params;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id, role: "ADMIN" } } },
-        ],
-      },
-    });
-
-    if (!project) return NextResponse.json({ error: "Droits insuffisants" }, { status: 403 });
+    const access = await getProjectAccess(user.id, projectId, "admin");
+    if (!access) return NextResponse.json({ error: "Droits insuffisants" }, { status: 403 });
 
     await prisma.label.delete({
       where: { id: labelId, projectId },

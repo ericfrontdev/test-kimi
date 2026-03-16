@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { getProjectAccess } from "@/lib/project-access";
 
 const updateChecklistSchema = z.object({
   title: z.string().min(1).max(200).trim(),
 });
 
 async function verifyAccess(userId: string, projectId: string, storyId: string, checklistId: string) {
-  const project = await prisma.project.findFirst({
-    where: { id: projectId, OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
-  });
-  if (!project) return null;
+  const access = await getProjectAccess(userId, projectId);
+  if (!access) return null;
 
   const checklist = await prisma.checklist.findFirst({
     where: { id: checklistId, storyId, story: { projectId } },

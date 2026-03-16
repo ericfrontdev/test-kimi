@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { validateBody, updateListSchema } from "@/lib/schemas";
+import { getProjectAccess } from "@/lib/project-access";
 
 // GET /api/projects/[id]/lists/[listId] - Get list detail with items
 export async function GET(
@@ -18,17 +19,8 @@ export async function GET(
   const { id: projectId, listId } = await params;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
@@ -71,17 +63,8 @@ export async function PATCH(
   if (response) return response;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId);
+    if (!access) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
 
@@ -133,17 +116,8 @@ export async function DELETE(
   const { id: projectId, listId } = await params;
 
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id, role: "ADMIN" } } },
-        ],
-      },
-    });
-
-    if (!project) {
+    const access = await getProjectAccess(user.id, projectId, "admin");
+    if (!access) {
       return NextResponse.json({ error: "Droits insuffisants" }, { status: 403 });
     }
 

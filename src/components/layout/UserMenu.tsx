@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User, UserPlus, Sun, Check, Monitor, Moon } from "lucide-react";
+import { LogOut, User, UserPlus, Sun, Check, Monitor, Moon, Shield } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { InviteUserDialog } from "./InviteUserDialog";
+import { InviteSuperAdminDialog } from "./InviteSuperAdminDialog";
 import { ProfileDialog } from "./ProfileDialog";
 import { useTheme } from "next-themes";
 
@@ -27,9 +28,11 @@ const themes: { value: Theme; label: string; icon: typeof Monitor }[] = [
 export function UserMenu() {
   const router = useRouter();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteSuperAdminOpen, setInviteSuperAdminOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const { theme, setTheme } = useTheme();
   const [themeOpen, setThemeOpen] = useState(false);
   const supabase = createClient();
@@ -41,6 +44,7 @@ export function UserMenu() {
         const name = data.name || data.email?.split("@")[0] || "?";
         setUserName(name);
         setUserAvatarUrl(data.avatarUrl ?? null);
+        setIsSuperAdmin(data.platformRole === "SUPER_ADMIN");
       })
       .catch(() => {});
   }, []);
@@ -70,13 +74,22 @@ export function UserMenu() {
             <User size={16} />
             <span>Profil</span>
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => setInviteOpen(true)} 
+          <DropdownMenuItem
+            onClick={() => setInviteOpen(true)}
             className="gap-2 cursor-pointer"
           >
             <UserPlus size={16} />
             <span>Ajouter un utilisateur</span>
           </DropdownMenuItem>
+          {isSuperAdmin && (
+            <DropdownMenuItem
+              onClick={() => setInviteSuperAdminOpen(true)}
+              className="gap-2 cursor-pointer"
+            >
+              <Shield size={16} />
+              <span>Ajouter un super admin</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           
           {/* Theme Selector - Style Shortcut */}
@@ -133,6 +146,7 @@ export function UserMenu() {
       </DropdownMenu>
 
       <InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      <InviteSuperAdminDialog open={inviteSuperAdminOpen} onOpenChange={setInviteSuperAdminOpen} />
       <ProfileDialog
         open={profileOpen}
         onOpenChange={setProfileOpen}

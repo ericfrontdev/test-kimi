@@ -4,6 +4,7 @@ import { ProjectPageClient } from "@/components/project/ProjectPageClient";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserExists } from "@/lib/ensure-user-exists";
+import { getProjectAccess } from "@/lib/project-access";
 import type { ProjectList } from "@/stores/project-list";
 
 interface ProjectPageProps {
@@ -31,32 +32,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   const INITIAL_TAKE = 100;
 
-  const [project, membership] = await Promise.all([
-    prisma.project.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: user.id },
-          { members: { some: { userId: user.id } } },
-        ],
-      },
-    }),
-    prisma.projectMember.findFirst({
-      where: { projectId: id, userId: user.id },
-      select: { role: true },
-    }),
-  ]);
-
-  if (!project) {
-    notFound();
-  }
-
-  const userRole: "OWNER" | "ADMIN" | "MEMBER" =
-    project.ownerId === user.id
-      ? "OWNER"
-      : membership?.role === "ADMIN"
-      ? "ADMIN"
-      : "MEMBER";
+  const access = await getProjectAccess(user.id, id);
+  if (!access) notFound();
+  const { project, effectiveRole: userRole } = access;
 
   if (project.type === "LIST") {
     // Load lists for list-based project

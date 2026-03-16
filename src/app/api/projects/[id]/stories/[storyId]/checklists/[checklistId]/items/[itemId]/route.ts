@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { getProjectAccess } from "@/lib/project-access";
 
 const updateItemSchema = z.object({
   title: z.string().min(1).max(500).trim().optional(),
@@ -9,10 +10,8 @@ const updateItemSchema = z.object({
 });
 
 async function verifyItem(userId: string, projectId: string, checklistId: string, itemId: string) {
-  const project = await prisma.project.findFirst({
-    where: { id: projectId, OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
-  });
-  if (!project) return null;
+  const access = await getProjectAccess(userId, projectId);
+  if (!access) return null;
   return prisma.checklistItem.findFirst({
     where: { id: itemId, checklistId, checklist: { story: { projectId } } },
   });

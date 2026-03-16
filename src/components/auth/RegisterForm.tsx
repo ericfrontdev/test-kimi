@@ -39,7 +39,12 @@ export function RegisterForm() {
     }
 
     const invite = searchParams.get("invite");
-    const redirect = invite ? `/login?registered=true&invite=${invite}` : "/login?registered=true";
+    const superadmin = searchParams.get("superadmin");
+    const redirect = superadmin
+      ? `/login?registered=true&superadmin=${superadmin}`
+      : invite
+      ? `/login?registered=true&invite=${invite}`
+      : "/login?registered=true";
     router.push(redirect);
     router.refresh();
   }

@@ -11,6 +11,11 @@ enum ProjectType {
   LIST
 }
 
+enum PlatformRole {
+  USER
+  SUPER_ADMIN
+}
+
 enum StoryStatus {
   BACKLOG
   TODO
@@ -33,12 +38,13 @@ enum TaskStatus {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
+  id            String       @id @default(uuid())
+  email         String       @unique
   name          String?
   avatarUrl     String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  platformRole  PlatformRole @default(USER)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   
   ownedProjects Project[]
   projectMembers ProjectMember[]
@@ -48,9 +54,10 @@ model User {
   tasks         Task[]
   comments      Comment[]
   taskComments  TaskComment[]
-  invitations   Invitation[] // Invitations envoyées par cet utilisateur
-  notifications Notification[]
-  
+  invitations            Invitation[] // Invitations envoyées par cet utilisateur
+  superAdminInvitations  SuperAdminInvitation[] @relation("SuperAdminInvitations")
+  notifications          Notification[]
+
   @@map("users")
 }
 
@@ -129,6 +136,22 @@ enum InvitationStatus {
   PENDING
   ACCEPTED
   EXPIRED
+}
+
+model SuperAdminInvitation {
+  id          String           @id @default(uuid())
+  email       String
+  token       String           @unique @default(uuid())
+  status      InvitationStatus @default(PENDING)
+
+  invitedById String
+  invitedBy   User             @relation("SuperAdminInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime         @default(now())
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  @@map("super_admin_invitations")
 }
 
 model Story {

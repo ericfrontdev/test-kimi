@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { getProjectAccess } from "@/lib/project-access";
 
 // POST /api/projects/[id]/stories/batch
 // Body: { storyIds: string[] }
@@ -27,18 +28,8 @@ export async function POST(
     return NextResponse.json({});
   }
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      OR: [
-        { ownerId: user.id },
-        { members: { some: { userId: user.id } } },
-      ],
-    },
-    select: { id: true },
-  });
-
-  if (!project) {
+  const access = await getProjectAccess(user.id, projectId);
+  if (!access) {
     return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
   }
 

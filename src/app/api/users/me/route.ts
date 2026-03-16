@@ -19,7 +19,7 @@ export async function GET() {
     const [dbUser, memberships] = await Promise.all([
       prisma.user.findUnique({
         where: { id: user.id },
-        select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+        select: { id: true, name: true, email: true, avatarUrl: true, platformRole: true, createdAt: true },
       }),
       prisma.projectMember.findMany({
         where: { userId: user.id },
@@ -50,6 +50,7 @@ export async function GET() {
       name: dbUser?.name ?? user.user_metadata?.name ?? null,
       email: dbUser?.email ?? user.email,
       avatarUrl: dbUser?.avatarUrl ?? null,
+      platformRole: dbUser?.platformRole ?? "USER",
       createdAt: dbUser?.createdAt?.toISOString() ?? null,
       projects: allProjects,
     });

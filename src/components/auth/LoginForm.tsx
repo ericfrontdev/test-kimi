@@ -32,7 +32,17 @@ export function LoginForm() {
       return;
     }
 
-    // Accept pending invitation via token if present in URL
+    // Accept super admin invitation if token present in URL
+    const superadmin = searchParams.get("superadmin");
+    if (superadmin) {
+      await fetch("/api/super-admin-invitations/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: superadmin }),
+      });
+    }
+
+    // Accept pending project invitation via token if present in URL
     const invite = searchParams.get("invite");
     if (invite) {
       await fetch("/api/invitations/accept", {
