@@ -5,13 +5,13 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RegisterPageProps {
-  searchParams: Promise<{ invite?: string }>;
+  searchParams: Promise<{ invite?: string; superadmin?: string }>;
 }
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
-  const { invite } = await searchParams;
+  const { invite, superadmin } = await searchParams;
 
-  if (!invite) {
+  if (!invite && !superadmin) {
     redirect("/login");
   }
 
