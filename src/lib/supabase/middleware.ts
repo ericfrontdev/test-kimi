@@ -35,9 +35,12 @@ export async function updateSession(request: NextRequest) {
 
   // Public paths that don't require auth
   const isPublicPath =
-    request.nextUrl.pathname.startsWith("/login") || 
+    request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/register") ||
-    request.nextUrl.pathname.startsWith("/auth/callback");
+    request.nextUrl.pathname.startsWith("/auth/callback") ||
+    request.nextUrl.pathname.startsWith("/invite/") ||
+    request.nextUrl.pathname.startsWith("/forgot-password") ||
+    request.nextUrl.pathname.startsWith("/reset-password");
 
   if (isPublicPath) {
     return supabaseResponse;
