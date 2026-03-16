@@ -5,15 +5,19 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RegisterPageProps {
-  searchParams: Promise<{ invite?: string }>;
+  searchParams: Promise<{ invite?: string; superadmin?: string }>;
 }
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
-  const { invite } = await searchParams;
+  const { invite, superadmin } = await searchParams;
 
-  if (!invite) {
+  if (!invite && !superadmin) {
     redirect("/login");
   }
+
+  const loginHref = superadmin
+    ? `/login?superadmin=${superadmin}`
+    : `/login?invite=${invite}`;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -30,7 +34,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           </Suspense>
           <div className="mt-4 text-center text-sm">
             <span className="text-muted-foreground">Déjà un compte ? </span>
-            <Link href={`/login?invite=${invite}`} className="text-primary hover:underline">
+            <Link href={loginHref} className="text-primary hover:underline">
               Se connecter
             </Link>
           </div>
