@@ -1,7 +1,6 @@
 "use client";
 
 import { LayoutDashboard } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -40,7 +39,8 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4">
         <Link href="/">
-          <Image src="/projet360-logo.png" alt="Projet 360" width={120} height={32} className="h-8 w-auto" priority />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/projet360-logo.png" alt="Projet 360" className="h-8 w-auto" />
         </Link>
       </div>
 
