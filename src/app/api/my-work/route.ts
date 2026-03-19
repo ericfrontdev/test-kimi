@@ -56,7 +56,7 @@ export async function GET() {
         take: 20,
       }),
       prisma.story.findMany({
-        where: { ...userStoryFilter, dueDate: { not: null, lte: in30Days }, status: { not: "DONE" } },
+        where: { ...userStoryFilter, dueDate: { not: null, lte: in30Days }, status: { notIn: ["DONE", "ARCHIVED"] } },
         include: { project: { select: { name: true } } },
         orderBy: { dueDate: "asc" },
       }),
