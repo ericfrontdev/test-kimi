@@ -1177,7 +1177,7 @@ export function CreateStoryDialog({
                 <Button type="submit" disabled={isLoading}>
                   {isLoading
                     ? isEditMode ? "Enregistrement..." : "Création..."
-                    : isEditMode ? "Enregistrer" : "Créer la Story"}
+                    : isEditMode ? "Enregistrer" : "Créer"}
                 </Button>
               </div>
             </div>
