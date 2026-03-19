@@ -26,7 +26,11 @@ export function useLongPress({ onLongPress, delay = 500, moveThreshold = 10 }: U
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     startPosRef.current = { x: touch.clientX, y: touch.clientY };
+    // Mémoriser la cible pour pouvoir annuler le drag dnd-kit au déclenchement
+    const target = e.currentTarget;
     timerRef.current = setTimeout(() => {
+      // Annuler le drag dnd-kit en cours avant d'ouvrir le menu
+      target.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true }));
       onLongPress(e);
       timerRef.current = null;
     }, delay);
