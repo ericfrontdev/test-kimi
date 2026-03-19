@@ -1160,7 +1160,7 @@ export function CreateStoryDialog({
                 onClick={handleDiscard}
                 disabled={isLoading}
               >
-                {isEditMode ? "Annuler" : "Annuler le brouillon"}
+                Annuler
               </Button>
               <div className="flex items-center gap-3">
                 {!isEditMode && (
