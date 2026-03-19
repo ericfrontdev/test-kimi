@@ -18,13 +18,14 @@ export default function MyWorkPage() {
           <div className="space-y-6 lg:col-span-2">
             <MyStories />
 
+            {/* Sur mobile : Dates à venir en premier (plus urgent), Checklists en second */}
             <div className="grid gap-6 md:grid-cols-2">
-              <MyChecklists />
-              <UpcomingDates />
+              <div className="order-2 md:order-1"><MyChecklists /></div>
+              <div className="order-1 md:order-2"><UpcomingDates /></div>
             </div>
           </div>
 
-          {/* Right Column - Activity Feed */}
+          {/* Right Column - Activity Feed (en dernier sur mobile) */}
           <div className="lg:col-span-1">
             <ActivityFeed />
           </div>

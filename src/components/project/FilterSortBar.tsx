@@ -168,8 +168,12 @@ export function FilterSortBar({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-8 gap-1.5">
-            <ArrowUpDown className="h-3.5 w-3.5" />
-            {activeSortLabel ?? "Trier"}
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">{activeSortLabel ?? "Trier"}</span>
+            <span className="sm:hidden">Trier</span>
+            {activeSortLabel && (
+              <Badge variant="secondary" className="h-4 min-w-4 px-1 text-xs sm:hidden">1</Badge>
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">

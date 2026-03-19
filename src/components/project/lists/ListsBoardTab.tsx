@@ -136,7 +136,7 @@ export function ListsBoardTab({ projectId }: ListsBoardTabProps) {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[500px]">
+        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 min-h-[300px] md:min-h-[500px]">
           {LIST_COLUMNS.map((column) => (
             <ListBoardColumn
               key={column.id}

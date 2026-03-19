@@ -76,82 +76,110 @@ export function ListsBacklogTab({ projectId }: ListsBacklogTabProps) {
     );
   }
 
-  function renderTable(items: ProjectList[], emptyLabel: string, isBoard: boolean) {
+  function renderMenu(list: ProjectList, isBoard: boolean) {
     return (
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[60%]">Nom</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((list) => (
-              <TableRow
-                key={list.id}
-                className="cursor-pointer"
-                onClick={() => handleView(list)}
-              >
-                <TableCell className="font-medium">
-                  <div className="flex flex-col gap-1">
-                    <span className="truncate">{list.title}</span>
-                    <Badge
-                      variant={list.status === "DONE" ? "default" : "outline"}
-                      className="w-fit text-xs"
-                    >
-                      {getStatusLabel(list.status)}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {renderItemCount(list)}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal size={16} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {!isBoard ? (
-                        <DropdownMenuItem onClick={() => updateListStatus(list.id, "TODO")}>
-                          <ArrowRight className="mr-2 h-4 w-4" />
-                          Envoyer au tableau
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => updateListStatus(list.id, "BACKLOG")}>
-                          <ArrowLeft className="mr-2 h-4 w-4" />
-                          Renvoyer au backlog
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => handleView(list)}>Voir</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEdit(list)}>Modifier</DropdownMenuItem>
-                      {userRole !== "MEMBER" && (
-                        <DropdownMenuItem
-                          onClick={() => updateListStatus(list.id, "ARCHIVED")}
-                          className="text-destructive"
-                        >
-                          Archiver
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+      <DropdownMenuContent align="end">
+        {!isBoard ? (
+          <DropdownMenuItem onClick={() => updateListStatus(list.id, "TODO")}>
+            <ArrowRight className="mr-2 h-4 w-4" />Envoyer au tableau
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => updateListStatus(list.id, "BACKLOG")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />Renvoyer au backlog
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => handleView(list)}>Voir</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleEdit(list)}>Modifier</DropdownMenuItem>
+        {userRole !== "MEMBER" && (
+          <DropdownMenuItem onClick={() => updateListStatus(list.id, "ARCHIVED")} className="text-destructive">
+            Archiver
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    );
+  }
+
+  function renderSection(items: ProjectList[], emptyLabel: string, isBoard: boolean) {
+    return (
+      <>
+        {/* Vue mobile — cards */}
+        <div className="md:hidden space-y-2">
+          {items.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">{emptyLabel}</p>
+          ) : items.map((list) => (
+            <div key={list.id} className="flex items-center justify-between rounded-lg border bg-card px-3 py-2.5 gap-2">
+              <button className="flex-1 text-left min-w-0" onClick={() => handleView(list)}>
+                <p className="text-sm font-medium truncate">{list.title}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={list.status === "DONE" ? "default" : "outline"} className="text-[10px] px-1.5 py-0">
+                    {getStatusLabel(list.status)}
+                  </Badge>
+                  {list.items.length > 0 && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <CheckSquare size={10} />{list.items.filter((i) => i.status === "DONE").length}/{list.items.length}
+                    </span>
+                  )}
+                </div>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreHorizontal size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                {renderMenu(list, isBoard)}
+              </DropdownMenu>
+            </div>
+          ))}
+        </div>
+
+        {/* Vue desktop — table */}
+        <div className="hidden md:block rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[60%]">Nom</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
-            ))}
-            {items.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center text-sm text-muted-foreground">
-                  {emptyLabel}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {items.map((list) => (
+                <TableRow key={list.id} className="cursor-pointer" onClick={() => handleView(list)}>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col gap-1">
+                      <span className="truncate">{list.title}</span>
+                      <Badge variant={list.status === "DONE" ? "default" : "outline"} className="w-fit text-xs">
+                        {getStatusLabel(list.status)}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {renderItemCount(list)}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal size={16} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      {renderMenu(list, isBoard)}
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center text-sm text-muted-foreground">
+                    {emptyLabel}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </>
     );
   }
 
@@ -167,7 +195,7 @@ export function ListsBacklogTab({ projectId }: ListsBacklogTabProps) {
             </Badge>
           </h3>
         </div>
-        {renderTable(backlogLists, "Aucune liste dans le backlog", false)}
+        {renderSection(backlogLists, "Aucune liste dans le backlog", false)}
       </div>
 
       {/* Dans le tableau */}
@@ -180,7 +208,7 @@ export function ListsBacklogTab({ projectId }: ListsBacklogTabProps) {
             </Badge>
           </h3>
         </div>
-        {renderTable(boardLists, "Aucune liste dans le tableau", true)}
+        {renderSection(boardLists, "Aucune liste dans le tableau", true)}
       </div>
 
       {hasMoreLists && (

@@ -23,7 +23,7 @@ export const KanbanColumn = memo(function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "min-w-[300px] flex-1 rounded-lg bg-muted/30 p-3 transition-colors",
+        "min-w-[260px] md:min-w-[300px] flex-1 rounded-lg bg-muted/30 p-3 transition-colors",
         isOver && "bg-muted/50 ring-2 ring-primary/20"
       )}
     >

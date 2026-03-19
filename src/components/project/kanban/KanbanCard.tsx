@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CheckSquare, ChevronRight, ChevronDown } from "lucide-react";
@@ -8,9 +8,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useProjectStore } from "@/stores/project";
 import type { Story, Task } from "./types";
+import { columns } from "./types";
 import { AssigneeDropdown } from "./AssigneeDropdown";
 import { PriorityDropdown } from "./PriorityDropdown";
 import { SubtasksList } from "./SubtasksList";
+import { useLongPress } from "@/hooks/use-long-press";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Référence stable — évite de créer un nouveau [] à chaque appel du selector Zustand
 const EMPTY_TASKS: Task[] = [];
@@ -29,8 +39,27 @@ export const KanbanCard = memo(function KanbanCard({ story, onStoryClick }: Kanb
   const updateStoryPriority = useProjectStore((state) => state.updateStoryPriority);
   const updateStoryAssignee = useProjectStore((state) => state.updateStoryAssignee);
   const updateTaskAssignee = useProjectStore((state) => state.updateTaskAssignee);
+  const updateStoryStatus = useProjectStore((state) => state.updateStoryStatus);
 
-  const handleClick = useCallback(() => onStoryClick(story), [onStoryClick, story]);
+  // Menu statut mobile (long press)
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  // Ref pour éviter qu'un long press déclenche aussi le onClick
+  const longPressTriggeredRef = useRef(false);
+
+  const longPress = useLongPress({
+    onLongPress: () => {
+      longPressTriggeredRef.current = true;
+      setStatusMenuOpen(true);
+    },
+  });
+
+  const handleClick = useCallback(() => {
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
+    onStoryClick(story);
+  }, [onStoryClick, story]);
 
   const {
     setNodeRef,
@@ -73,7 +102,33 @@ export const KanbanCard = memo(function KanbanCard({ story, onStoryClick }: Kanb
       className={cn("relative", isDragging && "opacity-30")}
       {...attributes}
       {...listeners}
+      {...longPress}
     >
+      {/* Menu statut mobile — déclenché par long press */}
+      <DropdownMenu open={statusMenuOpen} onOpenChange={setStatusMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          {/* Trigger invisible — le menu est contrôlé programmatiquement */}
+          <span className="sr-only" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            Déplacer vers
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {columns
+            .filter((col) => col.id !== story.status)
+            .map((col) => (
+              <DropdownMenuItem
+                key={col.id}
+                onClick={() => updateStoryStatus(story.id, col.id)}
+              >
+                <span className={cn("mr-2 h-2 w-2 rounded-full", col.color)} />
+                {col.title}
+              </DropdownMenuItem>
+            ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       <Card
         className={cn(
           "border transition-shadow hover:shadow-md cursor-pointer py-0 gap-0",

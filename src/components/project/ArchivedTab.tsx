@@ -174,7 +174,47 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
             </h3>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
+          {/* Vue mobile — cards */}
+          <div className="md:hidden space-y-2">
+            {archivedStories.map((story) => (
+              <div
+                key={story.id}
+                className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2.5 gap-2"
+              >
+                <button className="flex-1 text-left min-w-0" onClick={() => setSelectedStory(story)}>
+                  <p className="text-sm line-through text-muted-foreground truncate">{story.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-mono text-muted-foreground">{story.type}-{story.storyNumber}</span>
+                    {story.subtasks > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Layers size={10} />{story.completedSubtasks}/{story.subtasks}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <MoreHorizontal size={16} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleUnarchive(story)}>
+                      <ArchiveRestore className="h-4 w-4 mr-2" />Restaurer
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem className="text-destructive" onClick={() => setStoryToDelete(story)}>
+                        <Trash2 className="h-4 w-4 mr-2" />Supprimer définitivement
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+
+          {/* Vue desktop — table */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-muted/60 border-b">
                 <tr>
@@ -193,62 +233,35 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
                     onClick={() => setSelectedStory(story)}
                   >
                     <td className="px-4 py-3">
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {story.type}-{story.storyNumber}
-                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">{story.type}-{story.storyNumber}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm line-through text-muted-foreground">
-                        {story.title}
-                      </span>
+                      <span className="text-sm line-through text-muted-foreground">{story.title}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant="outline"
-                        className={`${getStatusBadgeClass(story.status)} font-normal`}
-                      >
+                      <Badge variant="outline" className={`${getStatusBadgeClass(story.status)} font-normal`}>
                         {getStatusLabel(story.status)}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
                       {story.subtasks > 0 ? (
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Layers size={14} />
-                          <span>
-                            {story.completedSubtasks}/{story.subtasks}
-                          </span>
+                          <Layers size={14} /><span>{story.completedSubtasks}/{story.subtasks}</span>
                         </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
+                      ) : <span className="text-sm text-muted-foreground">-</span>}
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal size={16} />
-                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal size={16} /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUnarchive(story);
-                            }}
-                          >
-                            <ArchiveRestore className="h-4 w-4 mr-2" />
-                            Restaurer
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUnarchive(story); }}>
+                            <ArchiveRestore className="h-4 w-4 mr-2" />Restaurer
                           </DropdownMenuItem>
                           {isAdmin && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setStoryToDelete(story);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Supprimer définitivement
+                            <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setStoryToDelete(story); }}>
+                              <Trash2 className="h-4 w-4 mr-2" />Supprimer définitivement
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>

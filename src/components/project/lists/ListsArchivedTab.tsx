@@ -115,7 +115,44 @@ export function ListsArchivedTab({ projectId }: ListsArchivedTabProps) {
             <span className="ml-2 text-sm font-normal text-muted-foreground">({archivedLists.length})</span>
           </h3>
 
-          <div className="border rounded-lg overflow-hidden">
+          {/* Vue mobile — cards */}
+          <div className="md:hidden space-y-2">
+            {archivedLists.map((list) => (
+              <div key={list.id} className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2.5 gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm line-through text-muted-foreground truncate">{list.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-mono text-muted-foreground">LIST-{list.listNumber}</span>
+                    {list.items.length > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <CheckSquare size={10} />{list.items.filter((i) => i.status === "DONE").length}/{list.items.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <MoreHorizontal size={16} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleUnarchive(list)}>
+                      <ArchiveRestore className="h-4 w-4 mr-2" />Restaurer
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem className="text-destructive" onClick={() => setListToDelete(list)}>
+                        <Trash2 className="h-4 w-4 mr-2" />Supprimer définitivement
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+
+          {/* Vue desktop — table */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-muted/60 border-b">
                 <tr>
@@ -138,9 +175,7 @@ export function ListsArchivedTab({ projectId }: ListsArchivedTabProps) {
                       {list.items.length > 0 ? (
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <CheckSquare size={14} />
-                          <span>
-                            {list.items.filter((i) => i.status === "DONE").length}/{list.items.length}
-                          </span>
+                          <span>{list.items.filter((i) => i.status === "DONE").length}/{list.items.length}</span>
                         </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
@@ -155,16 +190,11 @@ export function ListsArchivedTab({ projectId }: ListsArchivedTabProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleUnarchive(list)}>
-                            <ArchiveRestore className="h-4 w-4 mr-2" />
-                            Restaurer
+                            <ArchiveRestore className="h-4 w-4 mr-2" />Restaurer
                           </DropdownMenuItem>
                           {isAdmin && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => setListToDelete(list)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Supprimer définitivement
+                            <DropdownMenuItem className="text-destructive" onClick={() => setListToDelete(list)}>
+                              <Trash2 className="h-4 w-4 mr-2" />Supprimer définitivement
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>

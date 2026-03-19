@@ -124,7 +124,46 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
           </h3>
         </div>
 
-        <div className="rounded-md border">
+        {/* Vue mobile — cards */}
+        <div className="md:hidden space-y-2">
+          {backlogStories.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Aucune story dans le backlog</p>
+          ) : backlogStories.map((story) => (
+            <div key={story.id} className="flex items-center justify-between rounded-lg border bg-card px-3 py-2.5 gap-2">
+              <button className="flex-1 text-left min-w-0" onClick={() => handleView(story)}>
+                <p className="text-sm font-medium truncate">{story.title}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-mono text-muted-foreground">{story.type}-{story.storyNumber}</span>
+                  {story.subtasks > 0 && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Layers size={10} />{story.subtasks}
+                    </span>
+                  )}
+                </div>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreHorizontal size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "TODO")}>
+                    <ArrowRight className="mr-2 h-4 w-4" />Envoyer au tableau
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleView(story)}>Voir</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(story)}>Modifier</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "ARCHIVED")} className="text-destructive">
+                    Archiver
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
+        </div>
+
+        {/* Vue desktop — table */}
+        <div className="hidden md:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -139,39 +178,28 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
                   <TableCell className="font-medium">
                     <div className="flex flex-col gap-1">
                       <span className="truncate">{story.title}</span>
-                      <Badge variant="outline" className="w-fit text-xs">
-                        Backlog
-                      </Badge>
+                      <Badge variant="outline" className="w-fit text-xs">Backlog</Badge>
                     </div>
                   </TableCell>
                   <TableCell>
                     {story.subtasks > 0 ? (
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Layers size={14} />
-                        <span>{story.subtasks}</span>
+                        <Layers size={14} /><span>{story.subtasks}</span>
                       </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
+                    ) : <span className="text-sm text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal size={16} />
-                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal size={16} /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "TODO")}>
-                          <ArrowRight className="mr-2 h-4 w-4" />
-                          Envoyer au tableau
+                          <ArrowRight className="mr-2 h-4 w-4" />Envoyer au tableau
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleView(story)}>Voir</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(story)}>Modifier</DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => updateStoryStatus(story.id, "ARCHIVED")}
-                          className="text-destructive"
-                        >
+                        <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "ARCHIVED")} className="text-destructive">
                           Archiver
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -191,18 +219,61 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
         </div>
       </div>
 
-      {/* Table Dans le tableau */}
+      {/* Dans le tableau */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold">
             Dans le tableau
-            <Badge variant="secondary" className="ml-2">
-              {boardStories.length}
-            </Badge>
+            <Badge variant="secondary" className="ml-2">{boardStories.length}</Badge>
           </h3>
         </div>
 
-        <div className="rounded-md border">
+        {/* Vue mobile — cards */}
+        <div className="md:hidden space-y-2">
+          {boardStories.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Aucune story dans le tableau</p>
+          ) : boardStories.map((story) => (
+            <div key={story.id} className="flex items-center justify-between rounded-lg border bg-card px-3 py-2.5 gap-2">
+              <button className="flex-1 text-left min-w-0" onClick={() => handleView(story)}>
+                <p className="text-sm font-medium truncate">{story.title}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-mono text-muted-foreground">{story.type}-{story.storyNumber}</span>
+                  <Badge variant={story.status === "DONE" ? "default" : "outline"} className="text-[10px] px-1.5 py-0">
+                    {story.status === "TODO" && "À faire"}
+                    {story.status === "IN_PROGRESS" && "En cours"}
+                    {story.status === "IN_REVIEW" && "En révision"}
+                    {story.status === "DONE" && "Terminé"}
+                  </Badge>
+                  {story.subtasks > 0 && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Layers size={10} />{story.completedSubtasks}/{story.subtasks}
+                    </span>
+                  )}
+                </div>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreHorizontal size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "BACKLOG")}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />Renvoyer au backlog
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleView(story)}>Voir</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(story)}>Modifier</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "ARCHIVED")} className="text-destructive">
+                    Archiver
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
+        </div>
+
+        {/* Vue desktop — table */}
+        <div className="hidden md:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -217,10 +288,7 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
                   <TableCell className="font-medium">
                     <div className="flex flex-col gap-1">
                       <span className="truncate">{story.title}</span>
-                      <Badge
-                        variant={story.status === "DONE" ? "default" : "outline"}
-                        className="w-fit text-xs"
-                      >
+                      <Badge variant={story.status === "DONE" ? "default" : "outline"} className="w-fit text-xs">
                         {story.status === "TODO" && "À faire"}
                         {story.status === "IN_PROGRESS" && "En cours"}
                         {story.status === "IN_REVIEW" && "En révision"}
@@ -234,28 +302,20 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
                         <Layers size={14} className="text-muted-foreground" />
                         <span>{story.completedSubtasks}/{story.subtasks}</span>
                       </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
+                    ) : <span className="text-sm text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal size={16} />
-                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal size={16} /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "BACKLOG")}>
-                          <ArrowLeft className="mr-2 h-4 w-4" />
-                          Renvoyer au backlog
+                          <ArrowLeft className="mr-2 h-4 w-4" />Renvoyer au backlog
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleView(story)}>Voir</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(story)}>Modifier</DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => updateStoryStatus(story.id, "ARCHIVED")}
-                          className="text-destructive"
-                        >
+                        <DropdownMenuItem onClick={() => updateStoryStatus(story.id, "ARCHIVED")} className="text-destructive">
                           Archiver
                         </DropdownMenuItem>
                       </DropdownMenuContent>

@@ -32,13 +32,14 @@ function NavItem({ href, icon, label, active }: NavItemProps) {
   );
 }
 
-export function Sidebar() {
+// Contenu partagé entre la sidebar desktop et le drawer mobile
+export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-background">
+    <div className="flex h-full flex-col" onClick={onNavigate}>
       {/* Logo */}
-      <div className="flex h-14 items-center border-b px-4">
+      <div className="flex h-14 items-center border-b px-4 shrink-0">
         <Link href="/">
           <Image src="/projet360-logo.png" alt="Projet 360" width={120} height={32} className="h-8 w-auto" priority />
         </Link>
@@ -61,10 +62,19 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Footer - Logout only */}
-      <div className="border-t py-4 px-3">
+      {/* Footer */}
+      <div className="border-t py-4 px-3 shrink-0">
         <LogoutButton />
       </div>
+    </div>
+  );
+}
+
+// Sidebar desktop — cachée sur mobile
+export function Sidebar() {
+  return (
+    <aside className="hidden md:flex h-screen w-64 flex-col border-r bg-background">
+      <SidebarContent />
     </aside>
   );
 }

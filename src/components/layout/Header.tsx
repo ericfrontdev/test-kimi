@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { NotificationBell } from "./NotificationBell";
 import { UserMenu } from "./UserMenu";
 import { SearchTrigger } from "@/components/search/SearchDialog";
+import { MobileSidebar } from "./MobileSidebar";
 
 export function Header() {
   return (
     <header className="flex h-14 items-center justify-between border-b bg-background px-4">
-      {/* Left side - Search */}
-      <SearchTrigger />
+      {/* Left side — burger sur mobile, recherche sur desktop */}
+      <div className="flex items-center gap-2">
+        <MobileSidebar />
+        <SearchTrigger />
+      </div>
 
       {/* Right side */}
       <div className="flex items-center gap-2">
