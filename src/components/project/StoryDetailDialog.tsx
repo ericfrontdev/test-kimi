@@ -553,9 +553,9 @@ export function StoryDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-none w-[60vw] h-[90vh] overflow-hidden flex flex-col p-0 gap-0" showCloseButton={false}>
+      <DialogContent className="!max-w-none w-full h-full rounded-none md:rounded-lg md:w-[60vw] md:h-[90vh] overflow-hidden flex flex-col p-0 gap-0" showCloseButton={false}>
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
+        <DialogHeader className="px-4 md:px-6 py-4 border-b flex flex-row items-center justify-between">
           <DialogTitle className="sr-only">
             Détails de la story {displayStory.title}
           </DialogTitle>
@@ -577,9 +577,9 @@ export function StoryDetailDialog({
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto md:overflow-hidden md:flex">
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="p-4 md:p-6 space-y-6 md:flex-1 md:overflow-y-auto">
               {/* Title */}
               <h1 className="text-2xl font-semibold">{displayStory.title}</h1>
 
@@ -1102,7 +1102,7 @@ export function StoryDetailDialog({
             </div>
 
             {/* Right Sidebar */}
-            <div className="w-72 border-l bg-muted/20 p-4 space-y-4 overflow-y-auto">
+            <div className="border-t md:border-t-0 md:border-l bg-muted/20 p-4 space-y-4 md:w-72 md:overflow-y-auto">
               {/* Story ID */}
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Story ID</label>
