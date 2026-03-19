@@ -78,10 +78,8 @@ export function DescriptionTab() {
 
   const isTouch = useTouchDevice();
   const sensors = useSensors(
-    ...(isTouch ? [] : [
-      useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-      useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-    ])
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const activeStory = useMemo(
@@ -197,7 +195,7 @@ export function DescriptionTab() {
           </CardHeader>
           <CardContent>
             <DndContext
-              sensors={sensors}
+              sensors={isTouch ? [] : sensors}
               collisionDetection={closestCorners}
               onDragStart={handleListDragStart}
               onDragOver={handleListDragOver}
@@ -241,7 +239,7 @@ export function DescriptionTab() {
           </CardHeader>
           <CardContent>
             <DndContext
-              sensors={sensors}
+              sensors={isTouch ? [] : sensors}
               collisionDetection={closestCorners}
               onDragStart={handleStoryDragStart}
               onDragOver={handleStoryDragOver}

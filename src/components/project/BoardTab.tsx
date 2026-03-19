@@ -90,10 +90,8 @@ export function BoardTab({ projectId }: BoardTabProps) {
 
   const isTouch = useTouchDevice();
   const sensors = useSensors(
-    ...(isTouch ? [] : [
-      useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-      useSensor(KeyboardSensor),
-    ])
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
   );
 
   const activeStory = useMemo(
@@ -194,7 +192,7 @@ export function BoardTab({ projectId }: BoardTabProps) {
         </div>
       )}
       <DndContext
-        sensors={sensors}
+        sensors={isTouch ? [] : sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
