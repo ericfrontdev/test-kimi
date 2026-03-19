@@ -1160,7 +1160,7 @@ export function CreateStoryDialog({
                 onClick={handleDiscard}
                 disabled={isLoading}
               >
-                {isEditMode ? "Annuler" : "Annuler le brouillon"}
+                Annuler
               </Button>
               <div className="flex items-center gap-3">
                 {!isEditMode && (
@@ -1177,7 +1177,7 @@ export function CreateStoryDialog({
                 <Button type="submit" disabled={isLoading}>
                   {isLoading
                     ? isEditMode ? "Enregistrement..." : "Création..."
-                    : isEditMode ? "Enregistrer" : "Créer la Story"}
+                    : isEditMode ? "Enregistrer" : "Créer"}
                 </Button>
               </div>
             </div>

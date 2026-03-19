@@ -227,7 +227,7 @@ export function DescriptionTab() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText size={18} />
@@ -309,7 +309,7 @@ function Column({ id, title, icon, stories, onStoryClick }: ColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-lg border bg-muted/20 p-3 transition-colors",
+        "rounded-lg border bg-muted/20 p-3 transition-colors overflow-hidden",
         isOver && "border-primary bg-primary/5 ring-2 ring-primary/20"
       )}
     >
@@ -442,7 +442,7 @@ function ListColumn({ id, title, icon, lists }: ListColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-lg border bg-muted/20 p-3 transition-colors",
+        "rounded-lg border bg-muted/20 p-3 transition-colors overflow-hidden",
         isOver && "border-primary bg-primary/5 ring-2 ring-primary/20"
       )}
     >

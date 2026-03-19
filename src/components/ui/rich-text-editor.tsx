@@ -137,7 +137,7 @@ export function RichTextEditor({
     )}>
       {/* Toolbar */}
       <div className={cn(
-        "flex items-center gap-0.5 py-1.5 border-b",
+        "flex items-center gap-0.5 py-1.5 border-b overflow-x-auto",
         isBorderless ? "px-0 bg-transparent" : "px-2 bg-muted/30"
       )}>
         <ToolbarButton
