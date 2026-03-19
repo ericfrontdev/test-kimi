@@ -1,35 +1,36 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CheckSquare, ChevronRight, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useProjectStore } from "@/stores/project";
-import { useShallow } from "zustand/react/shallow";
-import type { Story } from "./types";
+import type { Story, Task } from "./types";
 import { AssigneeDropdown } from "./AssigneeDropdown";
 import { PriorityDropdown } from "./PriorityDropdown";
 import { SubtasksList } from "./SubtasksList";
 
+// Référence stable — évite de créer un nouveau [] à chaque appel du selector Zustand
+const EMPTY_TASKS: Task[] = [];
+
 interface KanbanCardProps {
   story: Story;
-  onClick: () => void;
+  onStoryClick: (story: Story) => void;
 }
 
-export const KanbanCard = memo(function KanbanCard({ story, onClick }: KanbanCardProps) {
-  const { expandedStories, storyTasks } = useProjectStore(
-    useShallow((s) => ({ expandedStories: s.expandedStories, storyTasks: s.storyTasks }))
-  );
+export const KanbanCard = memo(function KanbanCard({ story, onStoryClick }: KanbanCardProps) {
+  // Selectors granulaires — seuls les changements affectant CETTE story déclenchent un re-render
+  const isExpanded = useProjectStore((s) => s.expandedStories.has(story.id));
+  const tasks = useProjectStore((s) => s.storyTasks[story.id] ?? EMPTY_TASKS);
   const projectUsers = useProjectStore((state) => state.projectUsers);
   const toggleStoryExpanded = useProjectStore((state) => state.toggleStoryExpanded);
   const updateStoryPriority = useProjectStore((state) => state.updateStoryPriority);
   const updateStoryAssignee = useProjectStore((state) => state.updateStoryAssignee);
   const updateTaskAssignee = useProjectStore((state) => state.updateTaskAssignee);
 
-  const isExpanded = expandedStories.has(story.id);
-  const tasks = storyTasks[story.id] || [];
+  const handleClick = useCallback(() => onStoryClick(story), [onStoryClick, story]);
 
   const {
     setNodeRef,
@@ -78,7 +79,7 @@ export const KanbanCard = memo(function KanbanCard({ story, onClick }: KanbanCar
           "border transition-shadow hover:shadow-md cursor-pointer py-0 gap-0",
           isDragging && "shadow-lg rotate-1"
         )}
-        onClick={onClick}
+        onClick={handleClick}
       >
         <CardContent className="p-0 px-0">
           <div className="px-2.5 py-2">

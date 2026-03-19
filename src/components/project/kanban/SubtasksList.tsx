@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useProjectStore } from "@/stores/project";
-import { useShallow } from "zustand/react/shallow";
 import { SubtaskCard } from "./SubtaskCard";
 import { SubtaskDetailDialog } from "./SubtaskDetailDialog";
 import type { Task } from "./types";
@@ -13,13 +12,12 @@ interface SubtasksListProps {
   storyNumber: number;
 }
 
-export function SubtasksList({ storyId, storyType, storyNumber }: SubtasksListProps) {
-  const { storyTasks, loadingTasks } = useProjectStore(
-    useShallow((s) => ({ storyTasks: s.storyTasks, loadingTasks: s.loadingTasks }))
-  );
+// Référence stable — évite de créer un nouveau [] à chaque appel du selector Zustand
+const EMPTY_TASKS: Task[] = [];
 
-  const tasks = storyTasks[storyId] || [];
-  const isLoading = loadingTasks.has(storyId);
+export function SubtasksList({ storyId, storyType, storyNumber }: SubtasksListProps) {
+  const tasks = useProjectStore((s) => s.storyTasks[storyId] ?? EMPTY_TASKS);
+  const isLoading = useProjectStore((s) => s.loadingTasks.has(storyId));
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);

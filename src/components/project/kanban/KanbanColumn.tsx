@@ -43,7 +43,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             <KanbanCard
               key={story.id}
               story={story}
-              onClick={() => onStoryClick(story)}
+              onStoryClick={onStoryClick}
             />
           ))}
 

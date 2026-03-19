@@ -51,9 +51,13 @@ function StoryProjectTabs({ project }: { project: Project }) {
   const rawTab = searchParams.get("tab");
   const initialTab: StoryTab = VALID_STORY_TABS.includes(rawTab as StoryTab) ? (rawTab as StoryTab) : "description";
   const [activeTab, setActiveTab] = useState<StoryTab>(initialTab);
+  // Lazy mount — un onglet n'est rendu qu'après sa première visite, puis reste monté
+  const [visitedTabs, setVisitedTabs] = useState<Set<StoryTab>>(new Set([initialTab]));
 
   function handleTabChange(tab: string) {
-    setActiveTab(tab as StoryTab);
+    const t = tab as StoryTab;
+    setActiveTab(t);
+    setVisitedTabs((prev) => (prev.has(t) ? prev : new Set([...prev, t])));
     const url = new URL(window.location.href);
     url.searchParams.set("tab", tab);
     window.history.replaceState(null, "", url.toString());
@@ -69,16 +73,16 @@ function StoryProjectTabs({ project }: { project: Project }) {
       </TabsList>
 
       <TabsContent value="description" className="mt-6">
-        <DescriptionTab />
+        {visitedTabs.has("description") && <DescriptionTab />}
       </TabsContent>
       <TabsContent value="backlog" className="mt-6">
-        <BacklogTab projectId={project.id} />
+        {visitedTabs.has("backlog") && <BacklogTab projectId={project.id} />}
       </TabsContent>
       <TabsContent value="board" className="mt-6">
-        <BoardTab projectId={project.id} />
+        {visitedTabs.has("board") && <BoardTab projectId={project.id} />}
       </TabsContent>
       <TabsContent value="archived" className="mt-6">
-        <ArchivedTab projectId={project.id} />
+        {visitedTabs.has("archived") && <ArchivedTab projectId={project.id} />}
       </TabsContent>
     </Tabs>
   );
@@ -90,9 +94,12 @@ function ListProjectTabs({ project }: { project: Project }) {
   const rawTab = searchParams.get("tab");
   const initialTab: ListTab = VALID_LIST_TABS.includes(rawTab as ListTab) ? (rawTab as ListTab) : "description";
   const [activeTab, setActiveTab] = useState<ListTab>(initialTab);
+  const [visitedTabs, setVisitedTabs] = useState<Set<ListTab>>(new Set([initialTab]));
 
   function handleTabChange(tab: string) {
-    setActiveTab(tab as ListTab);
+    const t = tab as ListTab;
+    setActiveTab(t);
+    setVisitedTabs((prev) => (prev.has(t) ? prev : new Set([...prev, t])));
     const url = new URL(window.location.href);
     url.searchParams.set("tab", tab);
     window.history.replaceState(null, "", url.toString());
@@ -108,16 +115,16 @@ function ListProjectTabs({ project }: { project: Project }) {
       </TabsList>
 
       <TabsContent value="description" className="mt-6">
-        <DescriptionTab />
+        {visitedTabs.has("description") && <DescriptionTab />}
       </TabsContent>
       <TabsContent value="listes" className="mt-6">
-        <ListsBacklogTab projectId={project.id} />
+        {visitedTabs.has("listes") && <ListsBacklogTab projectId={project.id} />}
       </TabsContent>
       <TabsContent value="tableau" className="mt-6">
-        <ListsBoardTab projectId={project.id} />
+        {visitedTabs.has("tableau") && <ListsBoardTab projectId={project.id} />}
       </TabsContent>
       <TabsContent value="archived" className="mt-6">
-        <ListsArchivedTab projectId={project.id} />
+        {visitedTabs.has("archived") && <ListsArchivedTab projectId={project.id} />}
       </TabsContent>
     </Tabs>
   );

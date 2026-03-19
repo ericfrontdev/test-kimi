@@ -47,7 +47,6 @@ export function BoardTab({ projectId }: BoardTabProps) {
   const projectUsers = useProjectStore((state) => state.projectUsers);
   const fetchProjectUsers = useProjectStore((state) => state.fetchProjectUsers);
   const toggleStoryExpanded = useProjectStore((state) => state.toggleStoryExpanded);
-  const setStoryTasksCache = useProjectStore((state) => state.setStoryTasksCache);
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -62,6 +61,15 @@ export function BoardTab({ projectId }: BoardTabProps) {
   );
   const localStories = dragStories ?? filteredStoreStories;
 
+  // Pré-calcule les stories par colonne — évite de créer un nouveau tableau à chaque render
+  const storiesByColumn = useMemo(() => {
+    const map: Record<string, Story[]> = {};
+    for (const column of columns) {
+      map[column.id] = localStories.filter((s) => s.status === column.id);
+    }
+    return map;
+  }, [localStories]);
+
   const blockedRef = useRef(false);
   const [blockWarning, setBlockWarning] = useState(false);
 
@@ -69,36 +77,6 @@ export function BoardTab({ projectId }: BoardTabProps) {
   useEffect(() => {
     fetchProjectUsers(projectId);
   }, [projectId, fetchProjectUsers]);
-
-  // Preload all subtasks in background when story IDs change (single batch request)
-  const preloadedRef = useRef<Set<string>>(new Set());
-  const storyIdsKey = storeStories.map((s) => s.id).join(",");
-
-  useEffect(() => {
-    const storiesToLoad = storeStories.filter(
-      (s) => s.subtasks > 0 && !preloadedRef.current.has(s.id)
-    );
-    if (storiesToLoad.length === 0) return;
-
-    const ids = storiesToLoad.map((s) => s.id);
-    ids.forEach((id) => preloadedRef.current.add(id));
-
-    fetch(`/api/projects/${projectId}/stories/batch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storyIds: ids }),
-    })
-      .then((r) => r.json())
-      .then((data: Record<string, import("./kanban/types").Task[]>) => {
-        for (const storyId of ids) {
-          setStoryTasksCache(storyId, data[storyId] ?? []);
-        }
-      })
-      .catch(() => {
-        ids.forEach((id) => preloadedRef.current.delete(id));
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, storyIdsKey]);
 
   function canMoveToStatus(story: Story, newStatus: string): boolean {
     if (newStatus !== "IN_REVIEW" && newStatus !== "DONE") return true;
@@ -227,7 +205,7 @@ export function BoardTab({ projectId }: BoardTabProps) {
               id={column.id}
               title={column.title}
               color={column.color}
-              stories={localStories.filter((s) => s.status === column.id)}
+              stories={storiesByColumn[column.id] ?? []}
               onStoryClick={setSelectedStory}
             />
           ))}

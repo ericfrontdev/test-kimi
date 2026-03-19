@@ -83,8 +83,14 @@ const loadMoreStories = useProjectStore((state) => state.loadMoreStories);
     () => applyFiltersAndSort(stories, filter, sort),
     [stories, filter, sort]
   );
-  const backlogStories = filteredStories.filter((s) => s.status === "BACKLOG");
-  const boardStories = filteredStories.filter((s) => s.status !== "BACKLOG" && s.status !== "ARCHIVED");
+  const backlogStories = useMemo(
+    () => filteredStories.filter((s) => s.status === "BACKLOG"),
+    [filteredStories]
+  );
+  const boardStories = useMemo(
+    () => filteredStories.filter((s) => s.status !== "BACKLOG" && s.status !== "ARCHIVED"),
+    [filteredStories]
+  );
 
   function handleView(story: Story) {
     setSelectedStory(story);

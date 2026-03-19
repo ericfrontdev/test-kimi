@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { UserPlus, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ interface SubtaskCardProps {
   storyNumber: number;
 }
 
-export function SubtaskCard({ task, storyId, storyType, storyNumber }: SubtaskCardProps) {
+export const SubtaskCard = memo(function SubtaskCard({ task, storyId, storyType, storyNumber }: SubtaskCardProps) {
   const projectUsers = useProjectStore((state) => state.projectUsers);
   const updateTaskAssignee = useProjectStore((state) => state.updateTaskAssignee);
   const updateTaskStatus = useProjectStore((state) => state.updateTaskStatus);
@@ -108,4 +108,4 @@ export function SubtaskCard({ task, storyId, storyType, storyNumber }: SubtaskCa
       </CardContent>
     </Card>
   );
-}
+});

@@ -4,6 +4,44 @@ import { createClient } from "@/lib/supabase/server";
 import { validateBody, createTaskSchema } from "@/lib/schemas";
 import { getProjectAccess } from "@/lib/project-access";
 
+// GET /api/projects/[id]/stories/[storyId]/tasks - Récupère uniquement les tâches d'une story
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; storyId: string }> }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id: projectId, storyId } = await params;
+
+  const access = await getProjectAccess(user.id, projectId);
+  if (!access) return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
+
+  const tasks = await prisma.task.findMany({
+    where: { storyId, story: { projectId } },
+    select: {
+      id: true,
+      taskNumber: true,
+      title: true,
+      status: true,
+      assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      comments: {
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          author: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    orderBy: { taskNumber: "asc" },
+  });
+
+  return NextResponse.json(tasks);
+}
+
 // POST /api/projects/[id]/stories/[storyId]/tasks - Create new task
 export async function POST(
   request: NextRequest,

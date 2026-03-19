@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import useSWRInfinite from "swr/infinite";
 import { ArchiveRestore, Trash2, MoreHorizontal, Layers, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +21,27 @@ import {
 } from "@/components/ui/dialog";
 import { StoryDetailDialog } from "./StoryDetailDialog";
 import { useProjectStore } from "@/stores/project";
+import { fetcher } from "@/lib/fetcher";
 import { toast } from "sonner";
 import type { Story } from "./kanban/types";
 
 interface ArchivedTabProps {
   projectId: string;
+}
+
+interface ArchivedPage {
+  stories: Story[];
+  hasMore: boolean;
+  total: number;
+}
+
+const PAGE_SIZE = 50;
+
+function getKey(projectId: string) {
+  return (pageIndex: number, previousPageData: ArchivedPage | null) => {
+    if (previousPageData && !previousPageData.hasMore) return null;
+    return `/api/projects/${projectId}/stories?status=ARCHIVED&skip=${pageIndex * PAGE_SIZE}&take=${PAGE_SIZE}`;
+  };
 }
 
 function getStatusBadgeClass(status: string) {
@@ -67,38 +84,19 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
   const userRole = useProjectStore((state) => state.userRole);
   const isAdmin = userRole !== "MEMBER";
 
-  const [archivedStories, setArchivedStories] = useState<Story[]>([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const { data, size, setSize, isLoading, isValidating, mutate } = useSWRInfinite<ArchivedPage>(
+    getKey(projectId),
+    fetcher
+  );
+
+  const archivedStories = data ? data.flatMap((page) => page.stories) : [];
+  const hasMore = data ? (data[data.length - 1]?.hasMore ?? false) : false;
+  // "load more" spinner : on a demandé une page de plus mais elle n'est pas encore arrivée
+  const isLoadingMore = isValidating && size > (data?.length ?? 0);
+
   const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchArchived = useCallback(async (skip: number, append = false) => {
-    try {
-      const res = await fetch(
-        `/api/projects/${projectId}/stories?status=ARCHIVED&skip=${skip}&take=50`
-      );
-      if (res.ok) {
-        const { stories, hasMore: more } = await res.json();
-        setArchivedStories((prev) => append ? [...prev, ...stories] : stories);
-        setHasMore(more);
-      }
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchArchived(0);
-  }, [fetchArchived]);
-
-  async function handleLoadMore() {
-    setIsLoadingMore(true);
-    await fetchArchived(archivedStories.length, true);
-  }
 
   async function handleUnarchive(story: Story) {
     const response = await fetch(`/api/projects/${projectId}/stories/${story.id}`, {
@@ -108,7 +106,14 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
     });
     if (response.ok) {
       addStory({ ...story, status: "BACKLOG" });
-      setArchivedStories((prev) => prev.filter((s) => s.id !== story.id));
+      // Invalide le cache SWR — retire la story de toutes les pages en local
+      mutate(
+        (pages) => pages?.map((page) => ({
+          ...page,
+          stories: page.stories.filter((s) => s.id !== story.id),
+        })),
+        { revalidate: false }
+      );
     } else {
       toast.error("Échec de la restauration");
     }
@@ -124,10 +129,16 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
       if (response.ok) {
         setStoryToDelete(null);
         removeStory(storyId);
-        setArchivedStories((prev) => prev.filter((s) => s.id !== storyId));
+        mutate(
+          (pages) => pages?.map((page) => ({
+            ...page,
+            stories: page.stories.filter((s) => s.id !== storyId),
+          })),
+          { revalidate: false }
+        );
       } else {
         const data = await response.json().catch(() => ({}));
-        toast.error(data.error ?? "Échec de la suppression");
+        toast.error((data as { error?: string }).error ?? "Échec de la suppression");
         setStoryToDelete(null);
       }
     } catch {
@@ -253,7 +264,7 @@ export function ArchivedTab({ projectId }: ArchivedTabProps) {
             <div className="flex justify-center pt-4">
               <Button
                 variant="outline"
-                onClick={handleLoadMore}
+                onClick={() => setSize(size + 1)}
                 disabled={isLoadingMore}
               >
                 {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

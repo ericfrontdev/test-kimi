@@ -234,11 +234,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         return { loadingTasks: next };
       });
       try {
-        const response = await fetch(`/api/projects/${projectId}/stories/${storyId}`);
+        const response = await fetch(`/api/projects/${projectId}/stories/${storyId}/tasks`);
         if (response.ok) {
-          const data = await response.json();
+          const tasks = await response.json();
           set((state) => ({
-            storyTasks: { ...state.storyTasks, [storyId]: data.tasks || [] },
+            storyTasks: { ...state.storyTasks, [storyId]: tasks || [] },
           }));
         }
       } catch {

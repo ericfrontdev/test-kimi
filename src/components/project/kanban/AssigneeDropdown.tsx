@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { UserPlus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +22,7 @@ interface AssigneeDropdownProps {
   onAssigneeChange: (assigneeId: string | null, assignSubtasks: boolean) => void;
 }
 
-export function AssigneeDropdown({
+export const AssigneeDropdown = memo(function AssigneeDropdown({
   assignee,
   assigneeId,
   projectUsers,
@@ -103,4 +103,4 @@ export function AssigneeDropdown({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+});
