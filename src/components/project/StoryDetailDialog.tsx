@@ -121,7 +121,7 @@ function getStatusIcon(status: string) {
     case "DONE":
       return <Check className="h-4 w-4 text-emerald-500" />;
     case "IN_PROGRESS":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+      return <Clock className="h-4 w-4 text-blue-500" />;
     default:
       return <Circle className="h-4 w-4 text-slate-400" />;
   }
